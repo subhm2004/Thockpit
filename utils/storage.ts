@@ -1,38 +1,71 @@
-const STORAGE_KEY = 'owntype_best_wpm';
+import { TestResult } from '@/types';
 
-export function getBestWpm(): number | null {
+const PREFIX = "owntype_";
+
+const HISTORY_KEY = 'history';
+const PREF_KEY = (name: string) => `pref_${name}`;
+const HISTORY_LIMIT = 50;
+
+function read(key: string): string | null {
   if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? parseInt(stored, 10) : null;
+  return localStorage.getItem(PREFIX + key);
 }
 
-export function setBestWpm(wpm: number): void {
+function write(key: string, value: string): void {
   if (typeof window === 'undefined') return;
-  const current = getBestWpm();
-  if (current === null || wpm > current) {
-    localStorage.setItem(STORAGE_KEY, wpm.toString());
+  try {
+    localStorage.setItem(PREFIX + key, value);
+  } catch {
+    // Quota exceeded — nothing useful to do, and it must not break typing.
   }
 }
 
-const PREF_PREFIX = 'owntype_pref_';
+export function getHistory(): TestResult[] {
+  try {
+    const stored = read(HISTORY_KEY);
+    if (!stored) return [];
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (entry): entry is TestResult =>
+        typeof entry === 'object' && entry !== null && 'wpm' in entry && 'timeline' in entry
+    );
+  } catch {
+    // Corrupt or unreadable storage shouldn't take the app down.
+    return [];
+  }
+}
+
+/** Newest first. Returns the updated list. */
+export function addResult(result: TestResult): TestResult[] {
+  const history = [result, ...getHistory()].slice(0, HISTORY_LIMIT);
+  write(HISTORY_KEY, JSON.stringify(history));
+  return history;
+}
+
+export function clearHistory(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(PREFIX + HISTORY_KEY);
+}
+
+export function getBestFromHistory(history: TestResult[]): number | null {
+  if (history.length === 0) return null;
+  return history.reduce((best, result) => Math.max(best, result.wpm), 0);
+}
 
 export function getPref(key: string, fallback: boolean): boolean {
-  if (typeof window === 'undefined') return fallback;
-  const stored = localStorage.getItem(PREF_PREFIX + key);
+  const stored = read(PREF_KEY(key));
   return stored === null ? fallback : stored === 'true';
 }
 
 export function setPref(key: string, value: boolean): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(PREF_PREFIX + key, String(value));
+  write(PREF_KEY(key), String(value));
 }
 
 export function getStringPref(key: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  return localStorage.getItem(PREF_PREFIX + key) ?? fallback;
+  return read(PREF_KEY(key)) ?? fallback;
 }
 
 export function setStringPref(key: string, value: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(PREF_PREFIX + key, value);
+  write(PREF_KEY(key), value);
 }
