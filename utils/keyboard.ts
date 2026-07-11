@@ -111,3 +111,97 @@ export const MAC_ROWS: KeyDef[][] = [
 
 /** Width of every row in key units — the deck is sized from this. */
 export const ROW_UNITS = 14.5;
+
+export interface KeyHint {
+  code: string;
+  shift: boolean;
+}
+
+const SHIFTED_SYMBOLS: Record<string, string> = {
+  '~': 'Backquote',
+  '!': 'Digit1',
+  '@': 'Digit2',
+  '#': 'Digit3',
+  $: 'Digit4',
+  '%': 'Digit5',
+  '^': 'Digit6',
+  '&': 'Digit7',
+  '*': 'Digit8',
+  '(': 'Digit9',
+  ')': 'Digit0',
+  _: 'Minus',
+  '+': 'Equal',
+  '{': 'BracketLeft',
+  '}': 'BracketRight',
+  '|': 'Backslash',
+  ':': 'Semicolon',
+  '"': 'Quote',
+  '<': 'Comma',
+  '>': 'Period',
+  '?': 'Slash',
+};
+
+const PLAIN_SYMBOLS: Record<string, string> = {
+  '`': 'Backquote',
+  '-': 'Minus',
+  '=': 'Equal',
+  '[': 'BracketLeft',
+  ']': 'BracketRight',
+  '\\': 'Backslash',
+  ';': 'Semicolon',
+  "'": 'Quote',
+  ',': 'Comma',
+  '.': 'Period',
+  '/': 'Slash',
+  ' ': 'Space',
+};
+
+/** Which key you'd physically press to produce `char`, and whether it needs shift. */
+export function keyForChar(char: string): KeyHint | null {
+  if (!char) return null;
+
+  if (char >= 'a' && char <= 'z') {
+    return { code: `Key${char.toUpperCase()}`, shift: false };
+  }
+  if (char >= 'A' && char <= 'Z') {
+    return { code: `Key${char}`, shift: true };
+  }
+  if (char >= '0' && char <= '9') {
+    return { code: `Digit${char}`, shift: false };
+  }
+  if (SHIFTED_SYMBOLS[char]) {
+    return { code: SHIFTED_SYMBOLS[char], shift: true };
+  }
+  if (PLAIN_SYMBOLS[char]) {
+    return { code: PLAIN_SYMBOLS[char], shift: false };
+  }
+  return null;
+}
+
+/**
+ * Left/right half of the board, so a capital letter lights up the *opposite*
+ * shift key — which is how you're supposed to type it.
+ */
+const RIGHT_HAND_CODES = new Set([
+  'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP',
+  'KeyH', 'KeyJ', 'KeyK', 'KeyL',
+  'KeyN', 'KeyM',
+  'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0',
+  'Minus', 'Equal', 'BracketLeft', 'BracketRight', 'Backslash',
+  'Semicolon', 'Quote', 'Comma', 'Period', 'Slash',
+]);
+
+export function shiftKeyFor(code: string): 'ShiftLeft' | 'ShiftRight' {
+  return RIGHT_HAND_CODES.has(code) ? 'ShiftLeft' : 'ShiftRight';
+}
+
+/** The set of keys to highlight as "type this next". */
+export function hintCodesForChar(char: string): Set<string> {
+  const codes = new Set<string>();
+  const hint = keyForChar(char);
+  if (!hint) return codes;
+
+  codes.add(hint.code);
+  if (hint.shift) codes.add(shiftKeyFor(hint.code));
+  return codes;
+}
