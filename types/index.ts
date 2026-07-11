@@ -23,3 +23,26 @@ export interface TypingStats {
   correctChars: number;
   totalTyped: number;
 }
+
+/** One sample per elapsed second, for the result graph. */
+export interface TimelinePoint {
+  second: number;
+  wpm: number;
+  raw: number;
+  /** Mistyped keystrokes during this second. */
+  errors: number;
+}
+
+export interface TestResult {
+  id: string;
+  /** Epoch ms. */
+  timestamp: number;
+  mode: TestMode;
+  options: TestOptions;
+  wpm: number;
+  raw: number;
+  accuracy: number;
+  /** How even the typing speed was, 0–100. */
+  consistency: number;
+  timeline: TimelinePoint[];
+}
