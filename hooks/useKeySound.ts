@@ -12,9 +12,17 @@ import { rowForCode } from '@/utils/keyboard';
 
 export const SWITCHES = [
   { id: 'holypanda', name: 'Holy Panda' },
-  { id: 'boxnavy', name: 'Box Navy' },
+  { id: 'alpaca', name: 'Alpaca' },
   { id: 'cream', name: 'Cream' },
+  { id: 'topre', name: 'Topre' },
   { id: 'mxbrown', name: 'MX Brown' },
+  { id: 'mxblack', name: 'MX Black' },
+  { id: 'blackink', name: 'Black Ink' },
+  { id: 'redink', name: 'Red Ink' },
+  { id: 'boxnavy', name: 'Box Navy' },
+  { id: 'bluealps', name: 'Blue Alps' },
+  { id: 'turquoise', name: 'Turquoise' },
+  { id: 'buckling', name: 'Buckling Spring' },
 ] as const;
 
 export type SwitchId = (typeof SWITCHES)[number]['id'];

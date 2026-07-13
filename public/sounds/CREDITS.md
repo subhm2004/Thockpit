@@ -1,7 +1,8 @@
 # Switch sound samples
 
 Recordings of real mechanical switches, taken from [tplai/kbsim](https://github.com/tplai/kbsim)
-(MIT licensed). Four packs are bundled: `holypanda`, `boxnavy`, `cream`, `mxbrown`.
+(MIT licensed). Twelve packs are bundled: `holypanda`, `alpaca`, `cream`, `topre`, `mxbrown`,
+`mxblack`, `blackink`, `redink`, `boxnavy`, `bluealps`, `turquoise`, `buckling`.
 
 Each pack has:
 
