@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-label="Thockpit — a typing test you can hear">
+  <title>Thockpit — a typing test you can hear</title>
+
+  <defs>
+    <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1f" />
+      <stop offset="1" stop-color="#0d0d0f" />
+    </linearGradient>
+
+    <linearGradient id="capTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d3d45" />
+      <stop offset="1" stop-color="#2a2a30" />
+    </linearGradient>
+
+    <linearGradient id="hit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbbf24" />
+      <stop offset="1" stop-color="#d97706" />
+    </linearGradient>
+
+    <clipPath id="typing">
+      <rect class="reveal" x="96" y="198" width="492" height="32" />
+    </clipPath>
+
+  </defs>
+
+  <rect width="1200" height="360" rx="20" fill="url(#deck)" />
+  <rect x="0.5" y="0.5" width="1199" height="359" rx="19.5" fill="none" stroke="#27272a" />
+
+  <!-- Logo mark: a keycap, mid-thock -->
+  <g transform="translate(96 62)">
+    <rect x="0" y="14" width="46" height="42" rx="10" fill="#52525b" />
+    <rect x="0" y="3" width="46" height="40" rx="10" fill="#f59e0b" />
+    <g fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round">
+      <path class="wave" d="M62 16a17 17 0 0 1 0 26" />
+      <path class="wave wave2" d="M76 5a30 30 0 0 1 0 48" opacity="0.45" />
+    </g>
+  </g>
+
+  <text x="200" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="52" font-weight="700" letter-spacing="-1">
+    <tspan fill="#fafafa">thock</tspan><tspan fill="#71717a">pit</tspan>
+  </text>
+
+  <text x="202" y="146" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#71717a">
+    a typing test you can hear
+  </text>
+
+  <!-- The feature line types itself out, with a blinking caret -->
+  <g clip-path="url(#typing)">
+    <text x="96" y="222" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" fill="#a1a1aa">
+      3d keyboard · real switches · your stats
+    </text>
+  </g>
+  <g class="cursor">
+    <rect x="96" y="202" width="11" height="26" fill="#f59e0b" />
+  </g>
+
+  <!-- A slice of the board, rolling a keystroke wave across it -->
+  <g transform="translate(96 264)">
+    <g transform="translate(0 0)">
+      <g class="key" style="--d: 0.00s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(58 0)">
+      <g class="key" style="--d: 0.07s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(116 0)">
+      <g class="key" style="--d: 0.14s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(174 0)">
+      <g class="key" style="--d: 0.21s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(232 0)">
+      <g class="key" style="--d: 0.28s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(290 0)">
+      <g class="key" style="--d: 0.35s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(348 0)">
+      <g class="key" style="--d: 0.42s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(406 0)">
+      <g class="key" style="--d: 0.49s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(464 0)">
+      <g class="key" style="--d: 0.56s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(522 0)">
+      <g class="key" style="--d: 0.63s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(580 0)">
+      <g class="key" style="--d: 0.70s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(638 0)">
+      <g class="key" style="--d: 0.77s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(696 0)">
+      <g class="key" style="--d: 0.84s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(754 0)">
+      <g class="key" style="--d: 0.91s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <g transform="translate(812 0)">
+      <g class="key" style="--d: 0.98s">
+        <rect class="cap" width="52" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="52" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+    <!-- spacebar -->
+    <g transform="translate(870 0)">
+      <g class="key" style="--d: 1.05s">
+        <rect class="cap" width="222" height="52" rx="9" fill="url(#capTop)" />
+        <rect class="halo" width="222" height="52" rx="9" fill="url(#hit)" opacity="0" />
+      </g>
+    </g>
+  </g>
+</svg>
