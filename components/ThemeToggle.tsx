@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLampSound } from '@/hooks/useLampSound';
 
 interface ThemeToggleProps {
   isDark: boolean;
   onToggle: () => void;
+  soundEnabled?: boolean;
 }
 
 /** Resting length of the cord, in px. */
@@ -12,12 +14,16 @@ const CORD = 170;
 /** Pull it further than this and letting go flips the switch. */
 const PULL_THRESHOLD = 44;
 const MAX_PULL = 96;
+/** Keeps the bulb from swinging off the edge of the screen. */
+const MAX_SWING = 26;
 /** Anything shorter than this counts as a tap, not a pull. */
 const DRAG_SLOP = 4;
 
-export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
+export default function ThemeToggle({ isDark, onToggle, soundEnabled = true }: ThemeToggleProps) {
   const [armed, setArmed] = useState(false);
+  const clack = useLampSound(soundEnabled);
 
+  const mountRef = useRef<HTMLDivElement>(null);
   const armRef = useRef<HTMLDivElement>(null);
   const cordRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +31,10 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
   const dragged = useRef(0);
   const startX = useRef(0);
   const startY = useRef(0);
+  /** Where the cord hangs from, and how far the bulb was when you grabbed it. */
+  const pivotX = useRef(0);
+  const pivotY = useRef(0);
+  const grabDistance = useRef(CORD);
 
   // Cord stretch and pendulum swing, both spring back to rest.
   const pull = useRef(0);
@@ -78,6 +88,19 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.stopPropagation();
+
+      // The mount never rotates, so it gives an honest pivot even mid-swing.
+      const mount = mountRef.current;
+      if (mount) {
+        const rect = mount.getBoundingClientRect();
+        pivotX.current = rect.left + rect.width / 2;
+        pivotY.current = rect.top;
+      }
+      grabDistance.current = Math.hypot(
+        e.clientX - pivotX.current,
+        Math.max(1, e.clientY - pivotY.current)
+      );
+
       dragging.current = true;
       dragged.current = 0;
       startX.current = e.clientX;
@@ -94,17 +117,28 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
     const move = (e: PointerEvent) => {
       if (!dragging.current) return;
 
-      const dx = e.clientX - startX.current;
-      const dy = e.clientY - startY.current;
-      dragged.current = Math.max(dragged.current, Math.abs(dx) + Math.abs(dy));
+      dragged.current = Math.max(
+        dragged.current,
+        Math.abs(e.clientX - startX.current) + Math.abs(e.clientY - startY.current)
+      );
 
-      // Pulling down stretches the cord; past MAX_PULL it goes rubbery.
-      const down = Math.max(0, dy);
-      pull.current = down > MAX_PULL ? MAX_PULL + (down - MAX_PULL) * 0.25 : down;
-      pullVelocity.current = 0;
+      // The cord points at the cursor, the way a real one would — mapping the
+      // horizontal drag straight to an angle just leaves the bulb trailing
+      // behind your hand.
+      const dx = e.clientX - pivotX.current;
+      const dy = Math.max(1, e.clientY - pivotY.current);
 
-      swing.current = Math.max(-24, Math.min(24, dx * 0.16));
+      // Negated: CSS rotates clockwise, and screen y points down, so a positive
+      // angle swings anything *hanging below* the pivot to the left.
+      const angle = (-Math.atan2(dx, dy) * 180) / Math.PI;
+      swing.current = Math.max(-MAX_SWING, Math.min(MAX_SWING, angle));
       swingVelocity.current = 0;
+
+      // Stretch is how much further than the grab point the cursor has gone.
+      // Past MAX_PULL it goes rubbery.
+      const stretch = Math.max(0, Math.hypot(dx, dy) - grabDistance.current);
+      pull.current = stretch > MAX_PULL ? MAX_PULL + (stretch - MAX_PULL) * 0.25 : stretch;
+      pullVelocity.current = 0;
 
       setArmed(pull.current >= PULL_THRESHOLD);
       paint();
@@ -121,7 +155,10 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
       pullVelocity.current = -Math.min(pull.current, MAX_PULL) * 0.35;
       settle();
 
-      if (flipped) onToggle();
+      if (flipped) {
+        clack();
+        onToggle();
+      }
     };
 
     window.addEventListener('pointermove', move);
@@ -132,7 +169,7 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
     };
-  }, [onToggle, paint, settle]);
+  }, [clack, onToggle, paint, settle]);
 
   // A tap — mouse, touch or keyboard — flips it too. A drag must not, or the
   // pull would toggle twice.
@@ -140,9 +177,10 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (dragged.current > DRAG_SLOP) return;
+      clack();
       onToggle();
     },
-    [onToggle]
+    [clack, onToggle]
   );
 
   // Cord length and swing are driven imperatively (they change every frame).
@@ -193,8 +231,13 @@ export default function ThemeToggle({ isDark, onToggle }: ThemeToggleProps) {
 
   return (
     <>
-      {/* Desktop: hangs from the top, pull it down to flip the switch */}
-      <div className="fixed z-50 hidden sm:block select-none" style={{ top: 0, right: '100px' }}>
+      {/* Desktop: hangs from the top, pull it down to flip the switch.
+          Far enough in that a full swing keeps the bulb on screen. */}
+      <div
+        ref={mountRef}
+        className="fixed z-50 hidden sm:block select-none"
+        style={{ top: 0, right: '170px' }}
+      >
         <div
           ref={armRef}
           onPointerDown={handlePointerDown}
