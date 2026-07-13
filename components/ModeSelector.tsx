@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TestMode, TestOptions } from "@/types";
+import { modeLabel } from "@/utils/stats";
 interface ModeSelectorProps {
   mode: TestMode;
   options: TestOptions;
@@ -10,7 +11,7 @@ interface ModeSelectorProps {
   isDark?: boolean;
 }
 
-const modes: TestMode[] = [15, 30, 60];
+const modes: TestMode[] = [15, 30, 60, 'quote'];
 
 const ModeSelector = React.memo(function ModeSelector({
   mode,
@@ -44,7 +45,7 @@ const ModeSelector = React.memo(function ModeSelector({
                   }
                 `}
               >
-                {m}s
+                {modeLabel(m)}
                 {mode === m && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-500" />
                 )}
@@ -53,7 +54,12 @@ const ModeSelector = React.memo(function ModeSelector({
           </div>
         </div>
         
-        <div className="flex items-center gap-1 w-full justify-center">
+        {/* Punctuation/caps/numbers shape generated words — a quote is what it is. */}
+        <div
+          className={`flex items-center gap-1 w-full justify-center transition-opacity ${
+            mode === 'quote' ? 'opacity-30 pointer-events-none' : 'opacity-100'
+          }`}
+        >
           <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
             {[
               { id: 'punctuation', label: '@', full: 'punctuation' },

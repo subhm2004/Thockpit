@@ -1,6 +1,10 @@
 import { TestMode, TestResult } from '@/types';
 
-export const MODES: TestMode[] = [15, 30, 60];
+export const MODES: TestMode[] = [15, 30, 60, 'quote'];
+
+export function modeLabel(mode: TestMode): string {
+  return typeof mode === 'number' ? `${mode}s` : 'quote';
+}
 
 export interface StatsSummary {
   tests: number;
@@ -31,7 +35,17 @@ export function summarise(history: TestResult[]): StatsSummary {
     averageWpm: mean(history.map((r) => r.wpm)),
     averageAccuracy: mean(history.map((r) => r.accuracy)),
     averageConsistency: mean(history.map((r) => r.consistency)),
-    timeTyped: history.reduce((total, result) => total + result.mode, 0),
+    // A quote's length is however long it took you, not a number on a button.
+    timeTyped: Math.round(
+      history.reduce(
+        (total, result) =>
+          total +
+          (typeof result.mode === 'number'
+            ? result.mode
+            : (result.timeline.at(-1)?.second ?? 0)),
+        0
+      )
+    ),
     bestByMode,
   };
 }

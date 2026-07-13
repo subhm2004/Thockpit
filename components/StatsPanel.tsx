@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { TestResult } from '@/types';
-import { formatDuration, MODES, summarise } from '@/utils/stats';
+import { formatDuration, MODES, modeLabel, summarise } from '@/utils/stats';
 import HistoryChart from './HistoryChart';
 
 interface TileProps {
@@ -97,13 +97,13 @@ export default function StatsPanel({ history, isDark, onClose, onClear }: StatsP
 
             <section>
               <h3 className={`text-xs uppercase tracking-widest font-bold mb-3 ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
-                Best per length
+                Best per mode
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {MODES.map((mode) => (
                   <Tile
                     key={mode}
-                    label={`${mode}s`}
+                    label={modeLabel(mode)}
                     value={summary.bestByMode[mode] === null ? '—' : `${summary.bestByMode[mode]}`}
                     isDark={isDark}
                   />
@@ -139,7 +139,7 @@ export default function StatsPanel({ history, isDark, onClose, onClear }: StatsP
                             minute: '2-digit',
                           })}
                         </td>
-                        <td className="text-right py-2">{run.mode}s</td>
+                        <td className="text-right py-2">{modeLabel(run.mode)}</td>
                         <td className="text-right py-2 font-bold text-amber-500">{run.wpm}</td>
                         <td className="text-right py-2">{run.accuracy}%</td>
                         <td className="text-right py-2">{run.consistency}%</td>

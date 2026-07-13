@@ -8,7 +8,10 @@ import {
   TypingStats,
   TestOptions,
 } from '@/types';
+import { KeyTallies } from '@/types';
 import { generateWords } from '@/utils/words';
+import { Quote, randomQuote } from '@/utils/quotes';
+import { keyForChar } from '@/utils/keyboard';
 import { calculateAccuracy, calculateConsistency, calculateWpm, computeStats } from '@/utils/typing';
 import { addResult, clearHistory as clearStoredHistory, getHistory } from '@/utils/storage';
 
@@ -44,6 +47,8 @@ export function useTypingEngine(initialMode: TestMode = 30) {
 
   const [words, setWords] = useState<string[]>(initialData.words);
   const [charStates, setCharStates] = useState<CharState[][]>(initialData.charStates);
+  /** Set only in quote mode — the sentence you're typing, and where it came from. */
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [status, setStatus] = useState<TestStatus>('idle');
@@ -58,6 +63,10 @@ export function useTypingEngine(initialMode: TestMode = 30) {
   const correctCharsRef = useRef(0);
   /** Mistakes made since the last timeline sample. */
   const errorsSinceSampleRef = useRef(0);
+  /** What was actually typed into each finished word, so backspace can go back. */
+  const typedWordsRef = useRef<Record<number, string>>({});
+  /** Hits and misses per physical key, for the heatmap. */
+  const keysRef = useRef<KeyTallies>({});
   const timelineRef = useRef<TimelinePoint[]>([]);
   const lastSampledSecondRef = useRef(0);
 
@@ -136,6 +145,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
         accuracy: calculateAccuracy(correctKeystrokesRef.current, totalKeystrokesRef.current),
         consistency: calculateConsistency(timeline),
         timeline,
+        keys: keysRef.current,
       });
 
       setHistory(updated);
@@ -153,34 +163,47 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     startTimeRef.current = performance.now();
     statusRef.current = 'running';
     setStatus('running');
+
+    // A quote has no clock — it ends when the sentence does, so the timer just
+    // counts up underneath it.
+    const limit = typeof mode === 'number' ? mode : Infinity;
+
     intervalRef.current = setInterval(() => {
       if (startTimeRef.current !== null) {
         const newElapsed = (performance.now() - startTimeRef.current) / 1000;
         setElapsed(newElapsed);
 
         const second = Math.floor(newElapsed);
-        if (second > lastSampledSecondRef.current && second <= mode) {
+        if (second > lastSampledSecondRef.current && second <= limit) {
           sampleTimeline(second, newElapsed);
         }
 
-        if (newElapsed >= mode) {
+        if (newElapsed >= limit) {
           finishTest(newElapsed);
         }
       }
     }, 100);
   }, [mode, finishTest, sampleTimeline]);
 
-  const restart = useCallback((currentOptions = options) => {
+  const restart = useCallback((currentOptions = options, currentMode: TestMode = mode) => {
     clearTimer();
     statusRef.current = 'idle';
-    const newWords = generateWords(WORDS_COUNT, currentOptions);
+
+    const nextQuote = currentMode === 'quote' ? randomQuote() : null;
+    const newWords = nextQuote
+      ? nextQuote.text.split(' ')
+      : generateWords(WORDS_COUNT, currentOptions);
     const newCharStates = initializeCharStates(newWords);
-    
+
+    setQuote(nextQuote);
+
     totalKeystrokesRef.current = 0;
     correctKeystrokesRef.current = 0;
     correctCharsRef.current = 0;
     errorsSinceSampleRef.current = 0;
     timelineRef.current = [];
+    typedWordsRef.current = {};
+    keysRef.current = {};
     lastSampledSecondRef.current = 0;
     setResult(null);
 
@@ -199,12 +222,16 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       totalTyped: 0,
     });
     setInputValue('');
-  }, [clearTimer, options]);
+  }, [clearTimer, mode, options]);
 
-  const setMode = useCallback((newMode: TestMode) => {
-    setModeState(newMode);
-    restart();
-  }, [restart]);
+  const setMode = useCallback(
+    (newMode: TestMode) => {
+      setModeState(newMode);
+      // restart() closes over the old mode, so the new one has to be handed over.
+      restart(options, newMode);
+    },
+    [options, restart]
+  );
 
   const setOptions = useCallback((newOptions: Partial<TestOptions>) => {
     setOptionsState(prev => {
@@ -218,6 +245,50 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     if (startTimeRef.current === null) return 0;
     return (performance.now() - startTimeRef.current) / 1000;
   }, []);
+
+  /** Rebuild a word's char states from what was typed into it. */
+  const replayWord = useCallback((expected: string, typed: string): CharState[] => {
+    const chars: CharState[] = expected.split('').map((char, i) => ({
+      char,
+      status: i < typed.length ? (typed[i] === char ? 'correct' : 'incorrect') : 'idle',
+    }));
+
+    // Anything typed past the end of the word hangs off it, still wrong.
+    for (let i = expected.length; i < typed.length; i++) {
+      chars.push({ char: typed[i], status: 'incorrect' });
+    }
+
+    if (typed.length < expected.length) {
+      chars[typed.length] = { ...chars[typed.length], status: 'current' };
+    }
+
+    return chars;
+  }, []);
+
+  /**
+   * Backspace with an empty input steps back into the previous word, with
+   * whatever you typed into it still there — so a mistake two words ago is
+   * fixable, the way it is on a real keyboard.
+   */
+  const backspaceWord = useCallback(() => {
+    if (statusRef.current === 'finished' || currentWordIndex === 0) return;
+
+    const previousIndex = currentWordIndex - 1;
+    const typed = typedWordsRef.current[previousIndex] ?? '';
+    const expected = words[previousIndex] ?? '';
+
+    setCurrentWordIndex(previousIndex);
+    setCurrentCharIndex(typed.length);
+    setInputValue(typed);
+
+    setCharStates((prev) => {
+      const next = [...prev];
+      next[previousIndex] = replayWord(expected, typed);
+      // The word we just left goes back to untouched.
+      next[currentWordIndex] = initializeCharStates([words[currentWordIndex] ?? ''], false)[0];
+      return next;
+    });
+  }, [currentWordIndex, words, replayWord]);
 
   const handleInput = useCallback((value: string) => {
     if (statusRef.current === 'finished') return;
@@ -240,6 +311,10 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       totalKeystrokesRef.current += 1;
       correctKeystrokesRef.current += 1;
 
+      // Remember what was actually typed — the char states only keep the
+      // *expected* letters, so without this there's nothing to come back to.
+      typedWordsRef.current[currentWordIndex] = typedWord;
+
       const nextWordIdx = currentWordIndex + 1;
 
       if (nextWordIdx >= words.length) {
@@ -248,8 +323,9 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       }
 
       // A fast typist gets through 200+ words in a minute, so keep topping the
-      // list up — the clock should end the test, never the word list.
-      if (words.length - nextWordIdx <= REFILL_MARGIN) {
+      // list up — the clock should end the test, never the word list. (A quote
+      // is exactly as long as it is.)
+      if (mode !== 'quote' && words.length - nextWordIdx <= REFILL_MARGIN) {
         const extra = generateWords(REFILL_COUNT, options);
         setWords((prev) => [...prev, ...extra]);
         setCharStates((prev) => [...prev, ...initializeCharStates(extra, false)]);
@@ -301,10 +377,21 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     
     if (charTyped) {
       totalKeystrokesRef.current += 1;
-      if (charTyped === expectedChar) {
+      const correct = charTyped === expectedChar;
+
+      if (correct) {
         correctKeystrokesRef.current += 1;
       } else {
         errorsSinceSampleRef.current += 1;
+      }
+
+      // Tally against the key you were *meant* to hit — that's the one you need
+      // to know you keep missing.
+      const target = keyForChar(expectedChar);
+      if (target) {
+        const tally = (keysRef.current[target.code] ??= { presses: 0, errors: 0 });
+        tally.presses += 1;
+        if (!correct) tally.errors += 1;
       }
 
       setCharStates(prev => {
@@ -330,13 +417,22 @@ export function useTypingEngine(initialMode: TestMode = 30) {
         updateStats(currentElapsed, next);
         return next;
       });
-      
+
       setCurrentCharIndex(value.length);
+
+      // A quote is done the moment its last word is, with no trailing space to
+      // press. The char state above only lands on the next render, so the count
+      // for this final keystroke is added by hand.
+      if (mode === 'quote' && currentWordIndex === words.length - 1 && value === currentWord) {
+        if (correct) correctCharsRef.current += 1;
+        finishTest(currentElapsed);
+      }
     }
   }, [
     words,
     currentWordIndex,
     currentCharIndex,
+    mode,
     options,
     startTimer,
     getElapsed,
@@ -371,9 +467,11 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     inputValue,
     nextChar,
     currentWordIndex,
+    quote,
     result,
     history,
     handleInput,
+    backspaceWord,
     restart,
     setMode,
     setOptions,

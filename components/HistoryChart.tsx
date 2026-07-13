@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { TestResult } from '@/types';
+import { modeLabel } from '@/utils/stats';
 
 const WIDTH = 760;
 const HEIGHT = 150;
@@ -180,7 +181,7 @@ export default function HistoryChart({ history, isDark, onClear }: HistoryChartP
               <span className="font-bold" style={{ color: palette.wpm }}>
                 {active.wpm} wpm
               </span>
-              {` · ${active.accuracy}% · ${active.mode}s · `}
+              {` · ${active.accuracy}% · ${modeLabel(active.mode)} · `}
               {new Date(active.timestamp).toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -202,7 +203,7 @@ export default function HistoryChart({ history, isDark, onClear }: HistoryChartP
               {runs.map((run) => (
                 <tr key={run.id}>
                   <td>{new Date(run.timestamp).toLocaleString()}</td>
-                  <td>{run.mode}s</td>
+                  <td>{modeLabel(run.mode)}</td>
                   <td>{run.wpm}</td>
                   <td>{run.accuracy}%</td>
                 </tr>

@@ -12,7 +12,10 @@ interface StatsProps {
 }
 
 const Stats = React.memo(function Stats({ stats, mode, elapsed, bestWpm, isDark = true }: StatsProps) {
-  const timeRemaining = Math.max(0, Math.floor(mode - elapsed));
+  // A quote has no clock to run out, so its timer counts up instead of down.
+  const timed = typeof mode === 'number';
+  const seconds = timed ? Math.max(0, Math.floor(mode - elapsed)) : Math.floor(elapsed);
+  const runningOut = timed && seconds <= 5;
 
   return (
     <div className="flex flex-col items-center mb-10 font-['JetBrains_Mono',_monospace] animate-in fade-in slide-in-from-top-4 duration-700">
@@ -30,9 +33,11 @@ const Stats = React.memo(function Stats({ stats, mode, elapsed, bestWpm, isDark 
           </div>
         </div>
         <div className="flex flex-col items-center">
-          <span className={`text-xs uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>Time Left</span>
-          <div className={`text-4xl sm:text-5xl font-black ${timeRemaining <= 5 ? 'text-red-500 animate-pulse' : isDark ? 'text-zinc-100' : 'text-black'}`}>
-            {timeRemaining}<span className="text-xl sm:text-2xl ml-0.5 opacity-50">s</span>
+          <span className={`text-xs uppercase tracking-widest font-bold mb-1 ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+            {timed ? 'Time Left' : 'Time'}
+          </span>
+          <div className={`text-4xl sm:text-5xl font-black ${runningOut ? 'text-red-500 animate-pulse' : isDark ? 'text-zinc-100' : 'text-black'}`}>
+            {seconds}<span className="text-xl sm:text-2xl ml-0.5 opacity-50">s</span>
           </div>
         </div>
       </div>
