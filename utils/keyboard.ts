@@ -112,6 +112,17 @@ export const MAC_ROWS: KeyDef[][] = [
 /** Width of every row in key units — the deck is sized from this. */
 export const ROW_UNITS = 14.5;
 
+/** code → physical row (0 = function row). The sound packs record one sample per row. */
+const ROW_BY_CODE = new Map<string, number>(
+  MAC_ROWS.flatMap((row, rowIndex) => row.map((key) => [key.code, rowIndex] as const))
+);
+
+export function rowForCode(code: string): number {
+  // The sample packs only go up to R4, and the fn row shares row 1's sound.
+  const row = ROW_BY_CODE.get(code) ?? 3;
+  return Math.min(Math.max(row - 1, 0), 4);
+}
+
 export interface KeyHint {
   code: string;
   shift: boolean;
