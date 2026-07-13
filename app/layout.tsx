@@ -8,8 +8,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Own Type",
-  description: "A high-performance typing test",
+  title: "Thockpit",
+  description:
+    "A typing test with a 3D mechanical keyboard, real switch sounds, and your stats.",
 };
 
 export default function RootLayout({
