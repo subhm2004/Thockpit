@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
+import { KeyTallies } from '@/types';
 import { KeyDef, MAC_ROWS } from '@/utils/keyboard';
 
 /** World units: 1u = one letter key. Every row of the layout is 14.5u wide. */
@@ -156,17 +157,38 @@ interface KeycapProps {
   placed: PlacedKey;
   isPressed: boolean;
   isHint: boolean;
+  /** Accuracy on this key, 0–1. Null when it wasn't typed (or we're not in heatmap mode). */
+  score: number | null;
   theme: Theme;
 }
 
 const RESTING_Y = DECK_H / 2 + CAP_H / 2;
 
-const Keycap = React.memo(function Keycap({ placed, isPressed, isHint, theme }: KeycapProps) {
+/** Status colours: a key you always hit is green, one you keep missing is red. */
+const GOOD = new THREE.Color('#0ca30c');
+const WARN = new THREE.Color('#fab219');
+const BAD = new THREE.Color('#d03b3b');
+
+function heatColor(score: number): THREE.Color {
+  // 100%–90% good → 90%–70% amber → below that, red.
+  if (score >= 0.9) return GOOD.clone().lerp(WARN, (1 - score) / 0.1);
+  if (score >= 0.7) return WARN.clone().lerp(BAD, (0.9 - score) / 0.2);
+  return BAD;
+}
+
+const Keycap = React.memo(function Keycap({
+  placed,
+  isPressed,
+  isHint,
+  score,
+  theme,
+}: KeycapProps) {
   const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
 
   const base = useMemo(() => new THREE.Color(theme.cap), [theme.cap]);
   const hintColor = useMemo(() => new THREE.Color(theme.hint), [theme.hint]);
+  const heat = useMemo(() => (score === null ? null : heatColor(score)), [score]);
   const texture = useMemo(
     () => legendTexture(placed.def, placed.w, placed.d, theme.label),
     [placed.def, placed.w, placed.d, theme.label]
@@ -184,7 +206,7 @@ const Keycap = React.memo(function Keycap({ placed, isPressed, isHint, theme }: 
     const glow = isPressed ? 1.3 : isHint ? pulse : 0;
     m.emissiveIntensity = THREE.MathUtils.damp(m.emissiveIntensity, glow, 14, delta);
 
-    const target = isPressed ? ACCENT : isHint ? hintColor : base;
+    const target = heat ?? (isPressed ? ACCENT : isHint ? hintColor : base);
     m.color.lerp(target, 1 - Math.exp(-16 * delta));
   });
 
@@ -222,11 +244,12 @@ const MAX_PITCH = 0.035;
 interface BoardProps {
   pressed: ReadonlySet<string>;
   hints: ReadonlySet<string>;
+  scores: Map<string, number> | null;
   theme: Theme;
   boardRef: React.RefObject<THREE.Group | null>;
 }
 
-function Board({ pressed, hints, theme, boardRef }: BoardProps) {
+function Board({ pressed, hints, scores, theme, boardRef }: BoardProps) {
   // Follow the cursor a little, so the board reads as a solid object.
   useFrame((state, delta) => {
     const g = boardRef.current;
@@ -254,6 +277,7 @@ function Board({ pressed, hints, theme, boardRef }: BoardProps) {
           placed={placed}
           isPressed={pressed.has(placed.def.code)}
           isHint={hints.has(placed.def.code)}
+          score={scores?.get(placed.def.code) ?? null}
           theme={theme}
         />
       ))}
@@ -345,12 +369,27 @@ function CameraRig({ boardRef }: { boardRef: React.RefObject<THREE.Group | null>
 interface Keyboard3DProps {
   pressed: ReadonlySet<string>;
   hints: ReadonlySet<string>;
+  /** Per-key accuracy (0–1). Present only on the results screen. */
+  keys?: KeyTallies;
   isDark?: boolean;
 }
 
-export default function Keyboard3D({ pressed, hints, isDark = true }: Keyboard3DProps) {
+export default function Keyboard3D({ pressed, hints, keys, isDark = true }: Keyboard3DProps) {
   const theme = THEMES[isDark ? 'dark' : 'light'];
   const boardRef = useRef<THREE.Group>(null);
+
+  const scores = useMemo(() => {
+    if (!keys) return null;
+
+    const map = new Map<string, number>();
+    for (const [code, tally] of Object.entries(keys)) {
+      // One stray press on a key you barely touched isn't a weakness.
+      if (tally.presses >= 2) {
+        map.set(code, (tally.presses - tally.errors) / tally.presses);
+      }
+    }
+    return map;
+  }, [keys]);
 
   return (
     <div className="w-full max-w-5xl h-[clamp(210px,30vw,420px)] select-none">
@@ -369,7 +408,13 @@ export default function Keyboard3D({ pressed, hints, isDark = true }: Keyboard3D
         />
         <directionalLight position={[-8, 5, -6]} intensity={isDark ? 0.5 : 0.7} />
 
-        <Board pressed={pressed} hints={hints} theme={theme} boardRef={boardRef} />
+        <Board
+          pressed={pressed}
+          hints={hints}
+          scores={scores}
+          theme={theme}
+          boardRef={boardRef}
+        />
         {/* After <Board>, so its ref is set when the rig measures it. */}
         <CameraRig boardRef={boardRef} />
 

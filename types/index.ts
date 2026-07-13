@@ -5,7 +5,11 @@ export interface CharState {
   status: CharStatus;
 }
 
-export type TestMode = 15 | 30 | 60;
+/** A test that ends when the clock does. */
+export type TimeMode = 15 | 30 | 60;
+
+/** …or one that ends when the sentence does. */
+export type TestMode = TimeMode | 'quote';
 
 export interface TestOptions {
   punctuation: boolean;
@@ -33,6 +37,14 @@ export interface TimelinePoint {
   errors: number;
 }
 
+/** How a single physical key fared, keyed by KeyboardEvent.code. */
+export interface KeyTally {
+  presses: number;
+  errors: number;
+}
+
+export type KeyTallies = Record<string, KeyTally>;
+
 export interface TestResult {
   id: string;
   /** Epoch ms. */
@@ -45,4 +57,6 @@ export interface TestResult {
   /** How even the typing speed was, 0–100. */
   consistency: number;
   timeline: TimelinePoint[];
+  /** Which keys you fumbled — drives the heatmap on the board. */
+  keys: KeyTallies;
 }
