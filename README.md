@@ -62,11 +62,22 @@ home-row bumps. Every row adds up to 14.5u, which is what keeps the deck rectang
 - The key you must press **next** pulses amber.
 - A capital letter also lights the **opposite** shift key — the one you're supposed
   to use.
+- On a phone, where the keyboard reports no key codes at all, the key is worked out
+  from the character that lands in the input — so the board still plays along.
 - The whole board can be hidden from the toolbar if you'd rather just type.
+
+### 🎯 …and it shows you what you keep missing
+
+When the test ends, the board comes back as a **heatmap**: every key you typed is
+coloured by how often you actually hit it. Green is clean, amber is slipping, red is
+trouble. Keys you never touched stay grey.
+
+Every other typing test hands you a graph. None of them can show you that your `;`
+is the problem.
 
 ### 🔊 Real switch sounds
 
-Recordings of actual switches, not synthesis. Four packs ship, and each one carries:
+Recordings of actual switches, not synthesis. Twelve packs ship, and each one carries:
 
 - a **different press sample per keyboard row**, so the board sounds uneven the way a
   real one does,
@@ -99,8 +110,18 @@ After every test:
 wherever you slipped. Hover anywhere on it for the numbers at that second.
 
 Every run is saved to `localStorage` (the last 50). The **stats panel** in the toolbar
-shows your averages, your best per test length, a graph of your recent runs, and a
-table of your last ten.
+shows your averages, your best per mode, a graph of your recent runs, and a table of
+your last ten.
+
+### ✍️ Words, or a sentence
+
+15, 30 or 60 seconds of common English drawn from ~960 words — and the list tops itself
+up as you go, so the clock ends the test, never the word list. Or switch to **quote**
+mode and type a real sentence from public-domain literature; it ends when the sentence
+does.
+
+Backspace reaches **back into the previous word**, the way it does in a real editor, and
+`esc` restarts.
 
 ---
 
@@ -146,13 +167,14 @@ screen-reader table, in about 200 lines each.
 | Pack | Feel |
 |---|---|
 | **Holy Panda** *(default)* | tactile, deep thock |
-| **Box Navy** | loud and clicky |
-| **Cream** | poppy, deep |
-| **MX Brown** | the classic tactile |
+| **Alpaca**, **Cream**, **Topre** | smooth, poppy, deep |
+| **MX Brown**, **MX Black**, **Black Ink**, **Red Ink** | the classics, tactile and linear |
+| **Box Navy**, **Blue Alps**, **Turquoise** | loud and clicky |
+| **Buckling Spring** | the IBM Model M |
 
-Pick one from the toolbar; the choice is remembered. All 48 samples come from
+Pick one from the toolbar; the choice is remembered. All 144 samples come from
 [**tplai/kbsim**](https://github.com/tplai/kbsim) (MIT) — see
-[`public/sounds/CREDITS.md`](public/sounds/CREDITS.md). They add up to about 200 KB.
+[`public/sounds/CREDITS.md`](public/sounds/CREDITS.md). They add up to about 600 KB.
 
 ---
 
