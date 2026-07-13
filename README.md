@@ -21,6 +21,15 @@ npm run dev     # → http://localhost:3000
 
 No accounts, no backend, no telemetry. Everything lives in your browser.
 
+<p align="center">
+  <img src="assets/shot-typing.png" alt="Typing, with the 3D board tracking every keystroke" width="100%">
+</p>
+
+<p align="center">
+  <img src="assets/shot-results.png" alt="Results: speed per second, raw, and errors" width="49%">
+  <img src="assets/shot-stats.png" alt="All-time stats" width="49%">
+</p>
+
 ---
 
 ## Contents
