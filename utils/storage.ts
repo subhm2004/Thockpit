@@ -1,6 +1,8 @@
 import { TestResult } from '@/types';
 
-const PREFIX = "owntype_";
+const PREFIX = 'thockpit_';
+/** The app used to be called Own Type. Old saves are still worth reading. */
+const LEGACY_PREFIX = 'owntype_';
 
 const HISTORY_KEY = 'history';
 const PREF_KEY = (name: string) => `pref_${name}`;
@@ -8,7 +10,7 @@ const HISTORY_LIMIT = 50;
 
 function read(key: string): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(PREFIX + key);
+  return localStorage.getItem(PREFIX + key) ?? localStorage.getItem(LEGACY_PREFIX + key);
 }
 
 function write(key: string, value: string): void {
@@ -46,6 +48,7 @@ export function addResult(result: TestResult): TestResult[] {
 export function clearHistory(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(PREFIX + HISTORY_KEY);
+  localStorage.removeItem(LEGACY_PREFIX + HISTORY_KEY);
 }
 
 export function getBestFromHistory(history: TestResult[]): number | null {
