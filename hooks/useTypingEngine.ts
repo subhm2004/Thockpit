@@ -13,12 +13,15 @@ import { calculateAccuracy, calculateConsistency, calculateWpm, computeStats } f
 import { addResult, clearHistory as clearStoredHistory, getHistory } from '@/utils/storage';
 
 const WORDS_COUNT = 100;
+/** Top up the words once you're this close to the end of them. */
+const REFILL_MARGIN = 30;
+const REFILL_COUNT = 50;
 
-function initializeCharStates(words: string[]): CharState[][] {
+function initializeCharStates(words: string[], markFirstCurrent = true): CharState[][] {
   return words.map((word, wordIndex) => {
     const chars: CharState[] = word.split('').map((char, charIndex) => ({
       char,
-      status: wordIndex === 0 && charIndex === 0 ? 'current' : 'idle',
+      status: markFirstCurrent && wordIndex === 0 && charIndex === 0 ? 'current' : 'idle',
     }));
     return chars;
   });
@@ -244,9 +247,17 @@ export function useTypingEngine(initialMode: TestMode = 30) {
         return;
       }
 
+      // A fast typist gets through 200+ words in a minute, so keep topping the
+      // list up — the clock should end the test, never the word list.
+      if (words.length - nextWordIdx <= REFILL_MARGIN) {
+        const extra = generateWords(REFILL_COUNT, options);
+        setWords((prev) => [...prev, ...extra]);
+        setCharStates((prev) => [...prev, ...initializeCharStates(extra, false)]);
+      }
+
       setCurrentWordIndex(nextWordIdx);
       setCurrentCharIndex(0);
-      
+
       setCharStates(prev => {
         const next = [...prev];
         next[currentWordIndex] = next[currentWordIndex].map(c => 
@@ -322,7 +333,16 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       
       setCurrentCharIndex(value.length);
     }
-  }, [words, currentWordIndex, currentCharIndex, startTimer, getElapsed, updateStats, finishTest]);
+  }, [
+    words,
+    currentWordIndex,
+    currentCharIndex,
+    options,
+    startTimer,
+    getElapsed,
+    updateStats,
+    finishTest,
+  ]);
 
   useEffect(() => {
     return () => clearTimer();
@@ -350,6 +370,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     elapsed,
     inputValue,
     nextChar,
+    currentWordIndex,
     result,
     history,
     handleInput,

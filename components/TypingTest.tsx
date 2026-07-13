@@ -66,6 +66,7 @@ export default function TypingTest() {
     elapsed,
     inputValue,
     nextChar,
+    currentWordIndex,
     result,
     history,
     handleInput,
@@ -97,6 +98,15 @@ export default function TypingTest() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Escape restarts from anywhere. Tab is left alone: it moves focus to the
+      // Restart button, which Enter then presses — hijacking it would trap
+      // keyboard users in the input.
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        restart();
+        return;
+      }
+
       if (e.repeat) return;
       press(e.code);
       setPressedKeys((prev) => {
@@ -106,7 +116,7 @@ export default function TypingTest() {
         return next;
       });
     },
-    [press]
+    [press, restart]
   );
 
   const handleKeyUp = useCallback(
@@ -212,7 +222,10 @@ export default function TypingTest() {
 
   const handleRestart = useCallback(() => {
     restart();
-  }, [restart]);
+    // Whether it came from the button or from Enter on the button, you want to
+    // be typing again immediately.
+    inputRef.current?.focus();
+  }, [restart, inputRef]);
 
   const handleTryAgain = useCallback(() => {
     restart();
@@ -269,7 +282,12 @@ export default function TypingTest() {
           ref={containerRef}
           className="relative w-full max-w-7xl cursor-text text-center mt-8 px-4 overflow-hidden h-[6rem] sm:h-[6.6rem] md:h-[8rem]"
         >
-          <WordDisplay charStates={charStates} words={words} isDark={isDark} />
+          <WordDisplay
+            charStates={charStates}
+            words={words}
+            activeIndex={currentWordIndex}
+            isDark={isDark}
+          />
           {!isFocused && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className={`px-4 py-2 rounded-lg text-sm ${isDark ? 'bg-zinc-800/80 text-zinc-400' : 'bg-gray-200/80 text-gray-600'}`}>
@@ -278,6 +296,15 @@ export default function TypingTest() {
             </div>
           )}
         </div>
+      )}
+
+      {/* A shortcut nobody knows about may as well not exist. */}
+      {status !== 'finished' && (
+        <p className={`mt-4 text-xs ${isDark ? 'text-zinc-700' : 'text-zinc-400'}`}>
+          <kbd className="font-bold">esc</kbd> — restart
+          <span className="mx-2 opacity-50">·</span>
+          <kbd className="font-bold">tab</kbd> then <kbd className="font-bold">enter</kbd> — restart
+        </p>
       )}
 
       {status === 'finished' && (
