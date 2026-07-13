@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { DEFAULT_SWITCH, isSwitchId, SWITCHES, SwitchId, useKeySound } from '@/hooks/useKeySound';
 import { TestMode, TestOptions } from '@/types';
-import { hintCodesForChar } from '@/utils/keyboard';
+import { hintCodesForChar, keyForChar, shiftKeyFor } from '@/utils/keyboard';
 import { getPref, getStringPref, setPref, setStringPref } from '@/utils/storage';
 import ModeSelector from './ModeSelector';
 import Stats from './Stats';
@@ -67,9 +67,11 @@ export default function TypingTest() {
     inputValue,
     nextChar,
     currentWordIndex,
+    quote,
     result,
     history,
     handleInput,
+    backspaceWord,
     restart,
     setMode,
     setOptions,
@@ -87,13 +89,67 @@ export default function TypingTest() {
     inputRef.current?.focus();
   }, [inputRef]);
 
+  /**
+   * When a real keyboard last reported a key. A boolean flag gets stuck: a
+   * keydown that produces no input event (a held Backspace we cancelled, Escape,
+   * Shift) would leave it set and swallow the next virtual keystroke.
+   */
+  const lastPhysicalKeyAt = useRef(0);
+
+  /**
+   * Phone keyboards report no `code` — often no keydown at all — so the board
+   * would sit dead and silent on the device most people will open this on.
+   * Here the key is worked out from the character that landed in the input, and
+   * released on a timer, since there's no keyup coming either.
+   */
+  const flashKey = useCallback(
+    (code: string) => {
+      press(code);
+      setPressedKeys((prev) => {
+        const next = new Set(prev);
+        next.add(code);
+        return next;
+      });
+
+      window.setTimeout(() => {
+        release(code);
+        setPressedKeys((prev) => {
+          if (!prev.has(code)) return prev;
+          const next = new Set(prev);
+          next.delete(code);
+          return next;
+        });
+      }, 90);
+    },
+    [press, release]
+  );
+
   const onInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (status !== 'finished') {
-        handleInput(e.target.value);
+      if (status === 'finished') return;
+
+      const value = e.target.value;
+
+      // Text that arrives without a keydown just before it came from a phone.
+      const fromRealKeyboard = performance.now() - lastPhysicalKeyAt.current < 50;
+
+      if (!fromRealKeyboard) {
+        // `inputValue` is still the previous value at this point.
+        if (value.length > inputValue.length) {
+          const typed = value.slice(-1);
+          const hint = keyForChar(typed);
+          if (hint) {
+            flashKey(hint.code);
+            if (hint.shift) flashKey(shiftKeyFor(hint.code));
+          }
+        } else if (value.length < inputValue.length) {
+          flashKey('Backspace');
+        }
       }
+
+      handleInput(value);
     },
-    [handleInput, status]
+    [flashKey, handleInput, inputValue, status]
   );
 
   const handleKeyDown = useCallback(
@@ -107,7 +163,21 @@ export default function TypingTest() {
         return;
       }
 
+      // Backspace on an empty input steps back into the previous word. Held
+      // down, it walks back through them, so this sits above the repeat guard.
+      // preventDefault matters: React restores the word synchronously, and the
+      // browser's own backspace would then eat the last letter back off it.
+      if (e.key === 'Backspace' && inputValue.length === 0) {
+        e.preventDefault();
+        backspaceWord();
+      }
+
       if (e.repeat) return;
+
+      // A virtual keyboard sends no usable code; onInputChange handles those.
+      if (!e.code || e.code === 'Unidentified') return;
+      lastPhysicalKeyAt.current = performance.now();
+
       press(e.code);
       setPressedKeys((prev) => {
         if (prev.has(e.code)) return prev;
@@ -116,7 +186,7 @@ export default function TypingTest() {
         return next;
       });
     },
-    [press, restart]
+    [backspaceWord, inputValue, press, restart]
   );
 
   const handleKeyUp = useCallback(
@@ -298,6 +368,12 @@ export default function TypingTest() {
         </div>
       )}
 
+      {status !== 'finished' && quote && (
+        <p className={`mt-3 text-sm italic ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+          — {quote.source}
+        </p>
+      )}
+
       {/* A shortcut nobody knows about may as well not exist. */}
       {status !== 'finished' && (
         <p className={`mt-4 text-xs ${isDark ? 'text-zinc-700' : 'text-zinc-400'}`}>
@@ -338,6 +414,51 @@ export default function TypingTest() {
           {result && (
             <div className="w-full flex flex-col gap-10">
               <ResultChart result={result} isDark={isDark} />
+
+              {/* Which keys let you down — the one thing a graph can't tell you. */}
+              {showKeyboard && Object.keys(result.keys).length > 0 && (
+                <section className="w-full flex flex-col items-center">
+                  <h2
+                    className={`self-start text-xs uppercase tracking-widest font-bold ${
+                      isDark ? 'text-zinc-600' : 'text-zinc-400'
+                    }`}
+                  >
+                    Keys you missed
+                  </h2>
+
+                  <Keyboard3D
+                    pressed={NO_KEYS}
+                    hints={NO_KEYS}
+                    keys={result.keys}
+                    isDark={isDark}
+                  />
+
+                  <div className="flex items-center gap-5 -mt-2 text-xs">
+                    {[
+                      { color: '#0ca30c', label: 'clean' },
+                      { color: '#fab219', label: 'slipping' },
+                      { color: '#d03b3b', label: 'trouble' },
+                    ].map((entry) => (
+                      <span
+                        key={entry.label}
+                        className={`flex items-center gap-1.5 ${
+                          isDark ? 'text-zinc-500' : 'text-zinc-500'
+                        }`}
+                      >
+                        <span
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        {entry.label}
+                      </span>
+                    ))}
+                    <span className={isDark ? 'text-zinc-700' : 'text-zinc-400'}>
+                      untouched keys stay grey
+                    </span>
+                  </div>
+                </section>
+              )}
+
               <HistoryChart history={history} isDark={isDark} onClear={clearHistory} />
             </div>
           )}
