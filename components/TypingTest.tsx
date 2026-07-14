@@ -310,6 +310,22 @@ export default function TypingTest() {
     inputRef.current?.focus();
   }, [inputRef]);
 
+  /**
+   * The logo is the way home: from the results, from a replay, from the stats
+   * panel — click it and you're back on a fresh test, ready to type.
+   */
+  const goHome = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowStats(false);
+      setReplaying(false);
+      setShared(null);
+      restart();
+      inputRef.current?.focus();
+    },
+    [inputRef, restart]
+  );
+
   const hintKeys = useMemo(
     () => (status === 'finished' ? NO_KEYS : hintCodesForChar(nextChar)),
     [nextChar, status]
@@ -356,14 +372,19 @@ export default function TypingTest() {
     >
       <ThemeToggle isDark={isDark} onToggle={toggleTheme} soundEnabled={soundOn} />
 
-      {/* Gets out of the way once you're typing, like the mode selector. */}
-      <div
-        className={`fixed top-5 left-6 z-40 transition-opacity duration-300 ${
-          status === 'running' ? 'opacity-0' : 'opacity-100'
+      {/* Gets out of the way once you're typing — and while it's invisible it
+          must not be clickable either. Above the stats panel, so it's the way
+          back from anywhere. */}
+      <button
+        onClick={goHome}
+        aria-label="Back to typing"
+        title="Back to typing"
+        className={`fixed top-5 left-6 z-[60] rounded-lg transition-opacity duration-300 hover:opacity-80 ${
+          status === 'running' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         <Logo isDark={isDark} />
-      </div>
+      </button>
 
       <div className={`transition-all duration-300 ${status === 'running' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <ModeSelector 
