@@ -88,6 +88,24 @@ Every press is detuned a few percent at random, so two strokes of the same key a
 never identical. Samples decode up-front and play through a compressor, so fast typing
 doesn't clip or lag.
 
+### 🏆 A best worth celebrating
+
+Beat your own record and the board says so: a wave rolls out from the middle of the
+keyboard, every cap lifting and flashing amber as it passes, over a rising arpeggio
+that could never be mistaken for a keystroke.
+
+Then hit **Share** and the run renders to an image — your wpm, the shape of the run,
+the mistakes, a personal-best badge if you earned one. It goes to the share sheet on
+a phone, the clipboard on a desktop, and your downloads folder if the browser allows
+neither.
+
+### ⏪ Replay
+
+Press **Replay** and the board types your test back to you: the same keys, at the same
+moments, with the same sounds — including every mistake and every backspace. Kept in
+memory only, since a minute of fast typing is a thousand keystrokes and fifty of those
+would not fit in `localStorage`.
+
 ### 💡 A light you pull
 
 The lamp hanging in the corner is a pull-chain. Grab it, **pull it down**, and let go —

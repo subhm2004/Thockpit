@@ -11,6 +11,8 @@ import React, {
 import dynamic from 'next/dynamic';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import { DEFAULT_SWITCH, isSwitchId, SWITCHES, SwitchId, useKeySound } from '@/hooks/useKeySound';
+import { useCelebrationSound } from '@/hooks/useCelebrationSound';
+import { shareResult, ShareOutcome } from '@/utils/shareCard';
 import { TestMode, TestOptions } from '@/types';
 import { hintCodesForChar, keyForChar, shiftKeyFor } from '@/utils/keyboard';
 import { getPref, getStringPref, setPref, setStringPref } from '@/utils/storage';
@@ -22,6 +24,7 @@ import Logo from './Logo';
 import ResultChart from './ResultChart';
 import HistoryChart from './HistoryChart';
 import StatsPanel from './StatsPanel';
+import ReplayView from './ReplayView';
 import { getBestFromHistory } from '@/utils/storage';
 
 // WebGL can only run in the browser.
@@ -54,6 +57,8 @@ export default function TypingTest() {
   });
   const [pressedKeys, setPressedKeys] = useState<ReadonlySet<string>>(NO_KEYS);
   const [showStats, setShowStats] = useState(false);
+  const [replaying, setReplaying] = useState(false);
+  const [shared, setShared] = useState<ShareOutcome | 'failed' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -68,6 +73,7 @@ export default function TypingTest() {
     nextChar,
     currentWordIndex,
     quote,
+    replay,
     result,
     history,
     handleInput,
@@ -80,6 +86,39 @@ export default function TypingTest() {
   } = useTypingEngine(30);
 
   const { press, release } = useKeySound(soundOn, switchId);
+  const celebrate = useCelebrationSound(soundOn);
+
+  /**
+   * A personal best is beating everything that came *before* — the run that just
+   * finished already sits at the front of the history.
+   */
+  const isPersonalBest = useMemo(() => {
+    if (!result || history.length < 2) return false;
+    return result.wpm > Math.max(...history.slice(1).map((run) => run.wpm));
+  }, [history, result]);
+
+  useEffect(() => {
+    if (isPersonalBest) celebrate();
+  }, [celebrate, isPersonalBest, result?.id]);
+
+  const handleReplay = useCallback(() => {
+    setReplaying(true);
+  }, []);
+
+  const handleReplayDone = useCallback(() => {
+    setReplaying(false);
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    if (!result) return;
+    try {
+      setShared(await shareResult(result, isPersonalBest));
+    } catch (error) {
+      // Swallowing this would leave the button sitting there saying nothing.
+      console.error('Could not share the result', error);
+      setShared('failed');
+    }
+  }, [isPersonalBest, result]);
 
   const toggleTheme = useCallback(() => {
     setIsDark((prev) => !prev);
@@ -385,6 +424,14 @@ export default function TypingTest() {
 
       {status === 'finished' && (
         <div className="flex flex-col items-center w-full max-w-3xl mt-8 px-4">
+          {isPersonalBest && (
+            <div className="flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40">
+              <span className="text-amber-500 text-sm font-bold tracking-wide">
+                ★ NEW PERSONAL BEST
+              </span>
+            </div>
+          )}
+
           {/* All four read from the same saved result, so they can't disagree. */}
           <div className="flex flex-wrap justify-center gap-8 sm:gap-12 mb-8">
             <div className="text-center">
@@ -411,7 +458,24 @@ export default function TypingTest() {
             )}
           </div>
 
-          {result && (
+          {result && replaying && replay && (
+            <div className="w-full flex flex-col items-center gap-4">
+              <p className={`text-xs uppercase tracking-widest font-bold ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                Replaying your run
+              </p>
+              <ReplayView
+                replay={replay}
+                isDark={isDark}
+                showKeyboard={showKeyboard}
+                speed={1}
+                press={press}
+                release={release}
+                onDone={handleReplayDone}
+              />
+            </div>
+          )}
+
+          {result && !replaying && (
             <div className="w-full flex flex-col gap-10">
               <ResultChart result={result} isDark={isDark} />
 
@@ -430,6 +494,7 @@ export default function TypingTest() {
                     pressed={NO_KEYS}
                     hints={NO_KEYS}
                     keys={result.keys}
+                    rippleToken={isPersonalBest ? result.id : null}
                     isDark={isDark}
                   />
 
@@ -463,12 +528,45 @@ export default function TypingTest() {
             </div>
           )}
 
-          <button
-            onClick={handleTryAgain}
-            className="mt-10 px-8 py-3 bg-amber-500 text-black font-bold rounded-lg hover:bg-amber-400 transition-all transform hover:scale-105"
-          >
-            Try Again
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+            <button
+              onClick={handleTryAgain}
+              className="px-8 py-3 bg-amber-500 text-black font-bold rounded-lg hover:bg-amber-400 transition-all transform hover:scale-105"
+            >
+              Try Again
+            </button>
+
+            {replay && (
+              <button
+                onClick={handleReplay}
+                disabled={replaying}
+                className={`px-5 py-3 rounded-lg font-bold border transition-colors disabled:opacity-40 ${
+                  isDark
+                    ? 'border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
+                    : 'border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:border-zinc-400'
+                }`}
+              >
+                {replaying ? 'Replaying…' : 'Replay'}
+              </button>
+            )}
+
+            <button
+              onClick={handleShare}
+              className={`px-5 py-3 rounded-lg font-bold border transition-colors ${
+                isDark
+                  ? 'border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
+                  : 'border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:border-zinc-400'
+              }`}
+            >
+              {shared === 'copied'
+                ? 'Copied to clipboard'
+                : shared === 'downloaded'
+                  ? 'Saved'
+                  : shared === 'failed'
+                    ? "Couldn't share"
+                    : 'Share'}
+            </button>
+          </div>
         </div>
       )}
 
