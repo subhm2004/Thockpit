@@ -11,10 +11,10 @@ export default function Logo({ isDark = true }: LogoProps) {
   const skirt = isDark ? '#52525b' : '#a1a1aa';
 
   return (
-    <div className="flex items-center gap-2.5 select-none" aria-label="Thockpit">
+    <div className="flex items-center gap-3 select-none" aria-label="Thockpit">
       <svg
-        width="26"
-        height="26"
+        width="38"
+        height="38"
         viewBox="0 0 32 32"
         fill="none"
         aria-hidden="true"
@@ -32,7 +32,7 @@ export default function Logo({ isDark = true }: LogoProps) {
         />
       </svg>
 
-      <span className="text-base tracking-tight">
+      <span className="text-2xl tracking-tight">
         <span className={`font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>thock</span>
         <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>pit</span>
       </span>
