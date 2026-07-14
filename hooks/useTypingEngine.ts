@@ -8,7 +8,7 @@ import {
   TypingStats,
   TestOptions,
 } from '@/types';
-import { KeyTallies } from '@/types';
+import { KeyTallies, Replay, ReplayEvent } from '@/types';
 import { generateWords } from '@/utils/words';
 import { Quote, randomQuote } from '@/utils/quotes';
 import { keyForChar } from '@/utils/keyboard';
@@ -67,6 +67,11 @@ export function useTypingEngine(initialMode: TestMode = 30) {
   const typedWordsRef = useRef<Record<number, string>>({});
   /** Hits and misses per physical key, for the heatmap. */
   const keysRef = useRef<KeyTallies>({});
+  /** Every keystroke and when it landed, so the board can play the test back. */
+  const eventsRef = useRef<ReplayEvent[]>([]);
+  /** Mirrors `words`, because finishTest has no business re-running on every refill. */
+  const wordsRef = useRef<string[]>(initialData.words);
+  const [replay, setReplay] = useState<Replay | null>(null);
   const timelineRef = useRef<TimelinePoint[]>([]);
   const lastSampledSecondRef = useRef(0);
 
@@ -133,6 +138,10 @@ export function useTypingEngine(initialMode: TestMode = 30) {
 
       // An untouched test is not a result worth keeping.
       if (totalKeystrokesRef.current === 0) return;
+
+      // Kept in memory only: a minute of fast typing is a thousand keystrokes,
+      // and fifty of those in localStorage would blow the quota.
+      setReplay({ words: wordsRef.current, events: eventsRef.current });
 
       const timeline = timelineRef.current;
       const updated = addResult({
@@ -204,9 +213,12 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     timelineRef.current = [];
     typedWordsRef.current = {};
     keysRef.current = {};
+    eventsRef.current = [];
+    setReplay(null);
     lastSampledSecondRef.current = 0;
     setResult(null);
 
+    wordsRef.current = newWords;
     setWords(newWords);
     setCharStates(newCharStates);
     setCurrentWordIndex(0);
@@ -273,6 +285,8 @@ export function useTypingEngine(initialMode: TestMode = 30) {
   const backspaceWord = useCallback(() => {
     if (statusRef.current === 'finished' || currentWordIndex === 0) return;
 
+    eventsRef.current.push({ t: Math.round(getElapsed() * 1000), char: '\b' });
+
     const previousIndex = currentWordIndex - 1;
     const typed = typedWordsRef.current[previousIndex] ?? '';
     const expected = words[previousIndex] ?? '';
@@ -288,7 +302,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       next[currentWordIndex] = initializeCharStates([words[currentWordIndex] ?? ''], false)[0];
       return next;
     });
-  }, [currentWordIndex, words, replayWord]);
+  }, [currentWordIndex, getElapsed, words, replayWord]);
 
   const handleInput = useCallback((value: string) => {
     if (statusRef.current === 'finished') return;
@@ -310,6 +324,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
 
       totalKeystrokesRef.current += 1;
       correctKeystrokesRef.current += 1;
+      eventsRef.current.push({ t: Math.round(currentElapsed * 1000), char: ' ' });
 
       // Remember what was actually typed — the char states only keep the
       // *expected* letters, so without this there's nothing to come back to.
@@ -327,6 +342,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
       // is exactly as long as it is.)
       if (mode !== 'quote' && words.length - nextWordIdx <= REFILL_MARGIN) {
         const extra = generateWords(REFILL_COUNT, options);
+        wordsRef.current = [...wordsRef.current, ...extra];
         setWords((prev) => [...prev, ...extra]);
         setCharStates((prev) => [...prev, ...initializeCharStates(extra, false)]);
       }
@@ -355,6 +371,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     setInputValue(value);
 
     if (value.length < currentCharIndex) {
+      eventsRef.current.push({ t: Math.round(currentElapsed * 1000), char: '\b' });
       setCurrentCharIndex(value.length);
       setCharStates(prev => {
         const next = [...prev];
@@ -377,6 +394,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     
     if (charTyped) {
       totalKeystrokesRef.current += 1;
+      eventsRef.current.push({ t: Math.round(currentElapsed * 1000), char: charTyped });
       const correct = charTyped === expectedChar;
 
       if (correct) {
@@ -468,6 +486,7 @@ export function useTypingEngine(initialMode: TestMode = 30) {
     nextChar,
     currentWordIndex,
     quote,
+    replay,
     result,
     history,
     handleInput,
