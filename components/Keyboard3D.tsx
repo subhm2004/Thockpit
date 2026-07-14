@@ -159,8 +159,15 @@ interface KeycapProps {
   isHint: boolean;
   /** Accuracy on this key, 0–1. Null when it wasn't typed (or we're not in heatmap mode). */
   score: number | null;
+  /** When the celebration wave started. A ref: reading the clock during render
+   *  is impure, and a prop change would re-render every keycap. */
+  rippleRef: React.RefObject<number | null>;
   theme: Theme;
 }
+
+/** How fast the personal-best wave rolls outward, in ms per key unit. */
+const RIPPLE_SPEED = 48;
+const RIPPLE_DURATION = 420;
 
 const RESTING_Y = DECK_H / 2 + CAP_H / 2;
 
@@ -181,6 +188,7 @@ const Keycap = React.memo(function Keycap({
   isPressed,
   isHint,
   score,
+  rippleRef,
   theme,
 }: KeycapProps) {
   const group = useRef<THREE.Group>(null);
@@ -194,19 +202,33 @@ const Keycap = React.memo(function Keycap({
     [placed.def, placed.w, placed.d, theme.label]
   );
 
+  /** How far this key sits from the middle of the board — the wave starts there. */
+  const distance = useMemo(() => Math.hypot(placed.x, placed.z), [placed.x, placed.z]);
+
   useFrame((state, delta) => {
     const g = group.current;
     const m = material.current;
     if (!g || !m) return;
 
-    const targetY = RESTING_Y - (isPressed ? PRESS_DROP : 0);
+    // The wave reaches keys further from the centre later, and lifts them.
+    let ripple = 0;
+    const rippleAt = rippleRef.current;
+    if (rippleAt !== null) {
+      const since = performance.now() - rippleAt - distance * RIPPLE_SPEED;
+      if (since > 0 && since < RIPPLE_DURATION) {
+        ripple = Math.sin((since / RIPPLE_DURATION) * Math.PI);
+      }
+    }
+
+    const targetY = RESTING_Y - (isPressed ? PRESS_DROP : 0) + ripple * 0.22;
     g.position.y = THREE.MathUtils.damp(g.position.y, targetY, 22, delta);
 
     const pulse = 0.3 + Math.sin(state.clock.elapsedTime * 4.5) * 0.16;
-    const glow = isPressed ? 1.3 : isHint ? pulse : 0;
+    const glow = Math.max(isPressed ? 1.3 : isHint ? pulse : 0, ripple * 1.6);
     m.emissiveIntensity = THREE.MathUtils.damp(m.emissiveIntensity, glow, 14, delta);
 
-    const target = heat ?? (isPressed ? ACCENT : isHint ? hintColor : base);
+    const resting = heat ?? (isPressed ? ACCENT : isHint ? hintColor : base);
+    const target = ripple > 0.15 ? ACCENT : resting;
     m.color.lerp(target, 1 - Math.exp(-16 * delta));
   });
 
@@ -245,11 +267,12 @@ interface BoardProps {
   pressed: ReadonlySet<string>;
   hints: ReadonlySet<string>;
   scores: Map<string, number> | null;
+  rippleRef: React.RefObject<number | null>;
   theme: Theme;
   boardRef: React.RefObject<THREE.Group | null>;
 }
 
-function Board({ pressed, hints, scores, theme, boardRef }: BoardProps) {
+function Board({ pressed, hints, scores, rippleRef, theme, boardRef }: BoardProps) {
   // Follow the cursor a little, so the board reads as a solid object.
   useFrame((state, delta) => {
     const g = boardRef.current;
@@ -278,6 +301,7 @@ function Board({ pressed, hints, scores, theme, boardRef }: BoardProps) {
           isPressed={pressed.has(placed.def.code)}
           isHint={hints.has(placed.def.code)}
           score={scores?.get(placed.def.code) ?? null}
+          rippleRef={rippleRef}
           theme={theme}
         />
       ))}
@@ -371,12 +395,25 @@ interface Keyboard3DProps {
   hints: ReadonlySet<string>;
   /** Per-key accuracy (0–1). Present only on the results screen. */
   keys?: KeyTallies;
+  /** Change this (to a result id, say) to roll a celebration wave across the board. */
+  rippleToken?: string | null;
   isDark?: boolean;
 }
 
-export default function Keyboard3D({ pressed, hints, keys, isDark = true }: Keyboard3DProps) {
+export default function Keyboard3D({
+  pressed,
+  hints,
+  keys,
+  rippleToken = null,
+  isDark = true,
+}: Keyboard3DProps) {
   const theme = THEMES[isDark ? 'dark' : 'light'];
   const boardRef = useRef<THREE.Group>(null);
+  const rippleRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    rippleRef.current = rippleToken ? performance.now() : null;
+  }, [rippleToken]);
 
   const scores = useMemo(() => {
     if (!keys) return null;
@@ -412,6 +449,7 @@ export default function Keyboard3D({ pressed, hints, keys, isDark = true }: Keyb
           pressed={pressed}
           hints={hints}
           scores={scores}
+          rippleRef={rippleRef}
           theme={theme}
           boardRef={boardRef}
         />

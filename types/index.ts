@@ -37,6 +37,19 @@ export interface TimelinePoint {
   errors: number;
 }
 
+/** One keystroke, kept so the board can type the test back to you. */
+export interface ReplayEvent {
+  /** Milliseconds from the start of the test. */
+  t: number;
+  /** The character typed, ' ' for space, or '\b' for a backspace. */
+  char: string;
+}
+
+export interface Replay {
+  words: string[];
+  events: ReplayEvent[];
+}
+
 /** How a single physical key fared, keyed by KeyboardEvent.code. */
 export interface KeyTally {
   presses: number;
