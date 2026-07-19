@@ -42,6 +42,19 @@ function isKeyboardMode(value: string): value is KeyboardMode {
   return value === '2d' || value === '3d';
 }
 
+/** The favicon (app/icon.svg) rebuilt in the theme accent, as a data URI. */
+function faviconFor(accent: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">` +
+    `<rect width="32" height="32" rx="7" fill="#18181b"/>` +
+    `<rect x="5" y="10" width="15" height="14" rx="3.5" fill="#52525b"/>` +
+    `<rect x="5" y="6.5" width="15" height="13" rx="3.5" fill="${accent}"/>` +
+    `<path d="M23.5 12.5a5 5 0 0 1 0 7" stroke="${accent}" stroke-width="2.2" stroke-linecap="round"/>` +
+    `<path d="M26.8 9.5a9.5 9.5 0 0 1 0 13" stroke="${accent}" stroke-width="2.2" stroke-linecap="round" opacity="0.45"/>` +
+    `</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
 const subscribeToNothing = () => () => {};
 
 /** False on the server and through hydration, true once we're on the client. */
@@ -125,6 +138,17 @@ export default function TypingTest() {
     const bg = isDark ? '#0f0f0f' : `color-mix(in srgb, ${theme.accent} 7%, #fafafa)`;
     root.style.setProperty('--app-bg', bg);
     document.body.style.backgroundColor = bg;
+
+    // Repaint the browser-tab icon in the theme accent too.
+    let icon = document.querySelector<HTMLLinkElement>('link#theme-favicon');
+    if (!icon) {
+      icon = document.createElement('link');
+      icon.id = 'theme-favicon';
+      icon.rel = 'icon';
+      icon.type = 'image/svg+xml';
+      document.head.appendChild(icon);
+    }
+    icon.href = faviconFor(theme.accent);
   }, [theme.accent, theme.accentHover, isDark]);
 
   /**

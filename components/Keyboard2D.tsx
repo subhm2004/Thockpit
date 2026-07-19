@@ -2,24 +2,102 @@
 
 import React from 'react';
 import { KeyTallies } from '@/types';
-import { KeyDef, MAC_ROWS } from '@/utils/keyboard';
+import { KeyDef } from '@/utils/keyboard';
 import { KeyColors } from '@/utils/themes';
 
 /**
- * The flat board. Same keys and props as the 3D one — pressed lights up, the
- * next key glows, and on the results screen each cap wears its accuracy — only
- * drawn as coloured DOM tiles instead of WebGL.
+ * The flat board — a 65% layout with the nav column and arrows, drawn as
+ * coloured keycaps. Same props and behaviour as the 3D one: pressed lights up,
+ * the next key glows, and on the results screen each cap wears its accuracy.
+ *
+ * Its own layout (not the MacBook one the 3D board uses): the extra keys —
+ * media glyphs, del/pgup/pgdn/home/end, the arrow cluster — are decorative, so
+ * their codes never appear in `pressed`, `hints` or the heatmap. Every row adds
+ * up to 16 units, which is what keeps the deck rectangular.
  */
 
-/** The three caps OwnType tints with the accent, so the board reads as themed. */
+const UNITS = 16;
+
+/** The three caps tinted with the accent, so the board reads as themed. */
 const ACCENT_KEYS = new Set(['Escape', 'ShiftLeft', 'MetaLeft']);
 
-const ARROWS: Record<'left' | 'up' | 'down' | 'right', KeyDef> = {
-  left: { code: 'ArrowLeft', label: '◀' },
-  up: { code: 'ArrowUp', label: '▲' },
-  down: { code: 'ArrowDown', label: '▼' },
-  right: { code: 'ArrowRight', label: '▶' },
-};
+// U+FE0E asks for the flat, monochrome glyph rather than a colour emoji.
+const TEXT = '︎';
+const fn = (label: string, glyph: string): KeyDef => ({ code: label, label, shifted: glyph + TEXT });
+
+const ROWS: KeyDef[][] = [
+  [
+    { code: 'Escape', label: 'esc' },
+    fn('F1', '☼'), fn('F2', '☀'), fn('F3', '▦'), fn('F4', '⌕'),
+    fn('F5', '●'), fn('F6', '☾'), fn('F7', '≪'), fn('F8', '▷'),
+    fn('F9', '≫'), fn('F10', '⊘'), fn('F11', '◁'), fn('F12', '◀'),
+    { code: 'MissionControl', label: '⊞' + TEXT },
+    { code: 'Delete', label: 'del' },
+    { code: 'Power', label: '⏻' + TEXT },
+  ],
+  [
+    { code: 'Backquote', label: '`', shifted: '~' },
+    { code: 'Digit1', label: '1', shifted: '!' },
+    { code: 'Digit2', label: '2', shifted: '@' },
+    { code: 'Digit3', label: '3', shifted: '#' },
+    { code: 'Digit4', label: '4', shifted: '$' },
+    { code: 'Digit5', label: '5', shifted: '%' },
+    { code: 'Digit6', label: '6', shifted: '^' },
+    { code: 'Digit7', label: '7', shifted: '&' },
+    { code: 'Digit8', label: '8', shifted: '*' },
+    { code: 'Digit9', label: '9', shifted: '(' },
+    { code: 'Digit0', label: '0', shifted: ')' },
+    { code: 'Minus', label: '-', shifted: '_' },
+    { code: 'Equal', label: '=', shifted: '+' },
+    { code: 'Backspace', label: '←', w: 2 },
+    { code: 'PageUp', label: 'pgup' },
+  ],
+  [
+    { code: 'Tab', label: 'tab', w: 1.5 },
+    { code: 'KeyQ', label: 'Q' }, { code: 'KeyW', label: 'W' }, { code: 'KeyE', label: 'E' },
+    { code: 'KeyR', label: 'R' }, { code: 'KeyT', label: 'T' }, { code: 'KeyY', label: 'Y' },
+    { code: 'KeyU', label: 'U' }, { code: 'KeyI', label: 'I' }, { code: 'KeyO', label: 'O' },
+    { code: 'KeyP', label: 'P' },
+    { code: 'BracketLeft', label: '[', shifted: '{' },
+    { code: 'BracketRight', label: ']', shifted: '}' },
+    { code: 'Backslash', label: '\\', shifted: '|', w: 1.5 },
+    { code: 'PageDown', label: 'pgdn' },
+  ],
+  [
+    { code: 'CapsLock', label: 'caps', w: 1.75 },
+    { code: 'KeyA', label: 'A' }, { code: 'KeyS', label: 'S' }, { code: 'KeyD', label: 'D' },
+    { code: 'KeyF', label: 'F', bump: true }, { code: 'KeyG', label: 'G' }, { code: 'KeyH', label: 'H' },
+    { code: 'KeyJ', label: 'J', bump: true }, { code: 'KeyK', label: 'K' }, { code: 'KeyL', label: 'L' },
+    { code: 'Semicolon', label: ';', shifted: ':' },
+    { code: 'Quote', label: "'", shifted: '"' },
+    { code: 'Enter', label: 'return', w: 2.25 },
+    { code: 'Home', label: 'home' },
+  ],
+  [
+    { code: 'ShiftLeft', label: 'shift', w: 2.25 },
+    { code: 'KeyZ', label: 'Z' }, { code: 'KeyX', label: 'X' }, { code: 'KeyC', label: 'C' },
+    { code: 'KeyV', label: 'V' }, { code: 'KeyB', label: 'B' }, { code: 'KeyN', label: 'N' },
+    { code: 'KeyM', label: 'M' },
+    { code: 'Comma', label: ',', shifted: '<' },
+    { code: 'Period', label: '.', shifted: '>' },
+    { code: 'Slash', label: '/', shifted: '?' },
+    { code: 'ShiftRight', label: 'shift', w: 1.75 },
+    { code: 'ArrowUp', label: '▲' },
+    { code: 'End', label: 'end' },
+  ],
+  [
+    { code: 'ControlLeft', label: 'ctrl', w: 1.25 },
+    { code: 'AltLeft', label: 'option', w: 1.25 },
+    { code: 'MetaLeft', label: '', glyph: '⌘', w: 1.25 },
+    { code: 'Space', label: '', w: 6.25 },
+    { code: 'MetaRight', label: '', glyph: '⌘' },
+    { code: 'Fn', label: 'fn' },
+    { code: 'ControlRight', label: 'ctrl' },
+    { code: 'ArrowLeft', label: '◀' },
+    { code: 'ArrowDown', label: '▼' },
+    { code: 'ArrowRight', label: '▶' },
+  ],
+];
 
 /** Same three buckets the legend names: clean / slipping / trouble. */
 function heatColor(score: number): string {
@@ -38,6 +116,9 @@ function readableOn(hex: string): string {
   return luminance > 0.6 ? '#0a0a0a' : '#f8f8f8';
 }
 
+const LIP = 'inset 0 -3px 0 rgba(0,0,0,0.14)';
+const DROP = '0 1px 1px rgba(0,0,0,0.2)';
+
 interface CapProps {
   def: KeyDef;
   colors: KeyColors;
@@ -45,14 +126,10 @@ interface CapProps {
   isPressed: boolean;
   isHint: boolean;
   score: number | null;
-  /** Flex weight (key units) and whether this cap is a short function-row key. */
-  units: number;
-  small?: boolean;
-  /** Half-height, for the stacked up/down arrows. */
-  half?: boolean;
+  fnRow: boolean;
   /** On the results board, untouched keys stay grey — the signature accent keys
    *  step aside so the heatmap legend stays honest. */
-  heatmap?: boolean;
+  heatmap: boolean;
 }
 
 const Cap = React.memo(function Cap({
@@ -62,14 +139,11 @@ const Cap = React.memo(function Cap({
   isPressed,
   isHint,
   score,
-  units,
-  small,
-  half,
+  fnRow,
   heatmap,
 }: CapProps) {
   let background = colors.cap;
   let color = colors.label;
-  let boxShadow: string | undefined;
 
   if (isPressed) {
     background = accent;
@@ -82,17 +156,20 @@ const Cap = React.memo(function Cap({
     color = readableOn(accent);
   }
 
-  if (isHint && !isPressed) {
-    boxShadow = `0 0 0 2px ${accent}, 0 0 12px ${accent}`;
+  let boxShadow = `${LIP}, ${DROP}`;
+  if (isPressed) {
+    boxShadow = 'inset 0 -1px 0 rgba(0,0,0,0.12)';
+  } else if (isHint) {
+    boxShadow = `0 0 0 2px ${accent}, 0 0 11px ${accent}, ${LIP}`;
   }
 
-  // Numbers/symbols show their shifted legend above; modifiers show their glyph;
-  // the space bar shows nothing.
+  // Numbers/symbols/F-keys stack a small legend above the main one; ⌘ shows its
+  // glyph; the space bar shows nothing.
   let legend: React.ReactNode = def.label;
   if (def.shifted) {
     legend = (
-      <span className="flex flex-col items-center leading-none">
-        <span className="opacity-55 text-[0.85em]">{def.shifted}</span>
+      <span className="flex flex-col items-center leading-none gap-px">
+        <span className="opacity-60 text-[0.82em]">{def.shifted}</span>
         <span>{def.label}</span>
       </span>
     );
@@ -101,24 +178,20 @@ const Cap = React.memo(function Cap({
   }
 
   return (
-    <div
-      style={{
-        flexGrow: units,
-        flexBasis: 0,
-        minWidth: 0,
-        background,
-        color,
-        boxShadow,
-        transform: isPressed ? 'translateY(2px)' : undefined,
-      }}
-      className={`
-        flex items-center justify-center rounded-md select-none
-        ${half ? 'flex-1' : 'h-full'}
-        ${small ? 'text-[7px] sm:text-[9px]' : 'text-[9px] sm:text-[11px] md:text-xs'}
-        transition-[background-color,box-shadow,transform] duration-150
-      `}
-    >
-      {legend}
+    <div style={{ flex: `0 0 ${(def.w ?? 1) * (100 / UNITS)}%` }} className="min-w-0 p-[2px]">
+      <div
+        style={{ background, color, boxShadow, transform: isPressed ? 'translateY(2px)' : undefined }}
+        className={`
+          relative flex h-full w-full items-center justify-center rounded-md text-center leading-none
+          ${fnRow ? 'text-[6px] sm:text-[8px]' : 'text-[8px] sm:text-[10px] md:text-[11px]'}
+          transition-[background-color,box-shadow,transform] duration-100
+        `}
+      >
+        {legend}
+        {def.bump && (
+          <span className="absolute bottom-[3px] left-1/2 h-px w-2 -translate-x-1/2 rounded bg-current opacity-40" />
+        )}
+      </div>
     </div>
   );
 });
@@ -160,58 +233,32 @@ export default function Keyboard2D({
 
   const heatmap = scores !== null;
 
-  const capFor = (def: KeyDef, units: number, small: boolean, half = false) => (
-    <Cap
-      key={def.code}
-      def={def}
-      colors={colors}
-      accent={accent}
-      isPressed={pressed.has(def.code)}
-      isHint={hints.has(def.code)}
-      score={scores?.get(def.code) ?? null}
-      units={units}
-      small={small}
-      half={half}
-      heatmap={heatmap}
-    />
-  );
-
   return (
-    <div className="w-full max-w-3xl mx-auto select-none">
+    <div className="w-full max-w-3xl mx-auto select-none px-2">
       <div
-        className="flex flex-col gap-[3px] sm:gap-1 rounded-2xl p-2 sm:p-3 shadow-xl"
-        style={{ background: colors.deck }}
+        className="flex flex-col gap-[3px] sm:gap-1 rounded-2xl p-2.5 sm:p-3.5"
+        style={{
+          background: colors.deck,
+          boxShadow: `inset 0 0 0 1px rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,0.06), 0 14px 34px rgba(0,0,0,0.35)`,
+        }}
       >
-        {MAC_ROWS.map((row, rowIndex) => {
-          const small = rowIndex === 0;
+        {ROWS.map((row, rowIndex) => {
+          const fnRow = rowIndex === 0;
           return (
-            <div
-              key={rowIndex}
-              className={`flex gap-[3px] sm:gap-1 ${small ? 'h-4 sm:h-6' : 'h-7 sm:h-9 md:h-10'}`}
-            >
-              {row.map((def) => {
-                if (def.shape === 'arrows') {
-                  // One 3u slot: ◀ | (▲ over ▼) | ▶
-                  return (
-                    <div
-                      key={def.code}
-                      style={{ flexGrow: 3, flexBasis: 0, minWidth: 0 }}
-                      className="flex gap-[3px] sm:gap-1"
-                    >
-                      {capFor(ARROWS.left, 1, small)}
-                      <div
-                        style={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
-                        className="flex flex-col gap-[3px] sm:gap-1"
-                      >
-                        {capFor(ARROWS.up, 1, small, true)}
-                        {capFor(ARROWS.down, 1, small, true)}
-                      </div>
-                      {capFor(ARROWS.right, 1, small)}
-                    </div>
-                  );
-                }
-                return capFor(def, def.w ?? 1, small);
-              })}
+            <div key={rowIndex} className={`flex w-full ${fnRow ? 'h-6 sm:h-8' : 'h-9 sm:h-11 md:h-12'}`}>
+              {row.map((def) => (
+                <Cap
+                  key={def.code}
+                  def={def}
+                  colors={colors}
+                  accent={accent}
+                  isPressed={pressed.has(def.code)}
+                  isHint={hints.has(def.code)}
+                  score={scores?.get(def.code) ?? null}
+                  fnRow={fnRow}
+                  heatmap={heatmap}
+                />
+              ))}
             </div>
           );
         })}
