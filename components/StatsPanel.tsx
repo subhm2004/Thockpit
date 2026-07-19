@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { TestResult } from '@/types';
 import { formatDuration, MODES, modeLabel, summarise } from '@/utils/stats';
 import HistoryChart from './HistoryChart';
+import ConsistencyMap from './ConsistencyMap';
 
 interface TileProps {
   label: string;
@@ -111,6 +112,8 @@ export default function StatsPanel({ history, isDark, onClose, onClear, accent =
                 ))}
               </div>
             </section>
+
+            <ConsistencyMap history={history} isDark={isDark} accent={accent} />
 
             <HistoryChart history={history} isDark={isDark} onClear={onClear} accent={accent} />
 

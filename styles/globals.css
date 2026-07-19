@@ -50,6 +50,12 @@ body {
 .border-accent-soft {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
+/* A soft accent glow — the selected chip lights up. */
+.glow-accent {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 16px color-mix(in srgb, var(--accent) 38%, transparent);
+}
 
 @keyframes blink {
   0%, 100% {

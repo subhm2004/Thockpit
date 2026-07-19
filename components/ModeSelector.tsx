@@ -38,7 +38,7 @@ const ModeSelector = React.memo(function ModeSelector({
                   relative px-4 py-1.5 rounded-xl text-sm font-bold transition-all duration-300
                   ${
                     mode === m
-                      ? "text-accent bg-accent-soft"
+                      ? "text-accent bg-accent-soft glow-accent"
                       : isDark
                         ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
                         : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
@@ -71,8 +71,8 @@ const ModeSelector = React.memo(function ModeSelector({
                 onClick={() => onOptionsChange({ [opt.id]: !options[opt.id as keyof TestOptions] })}
                 className={`
                   group/btn relative px-2 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300
-                  ${options[opt.id as keyof TestOptions] 
-                    ? 'text-accent bg-accent-soft'
+                  ${options[opt.id as keyof TestOptions]
+                    ? 'text-accent bg-accent-soft glow-accent'
                     : isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}
                 `}
               >
