@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { CharState, Replay } from '@/types';
 import { keyForChar, shiftKeyFor } from '@/utils/keyboard';
+import { KeyColors } from '@/utils/themes';
 import WordDisplay from './WordDisplay';
-
-const Keyboard3D = dynamic(() => import('./Keyboard3D'), { ssr: false });
+import KeyboardView, { KeyboardMode } from './KeyboardView';
 
 const NO_KEYS: ReadonlySet<string> = new Set();
 /** How long a key stays down during playback. */
@@ -42,6 +41,9 @@ interface ReplayViewProps {
   press: (code: string) => void;
   release: (code: string) => void;
   onDone: () => void;
+  keyColors?: KeyColors;
+  accent?: string;
+  mode: KeyboardMode;
 }
 
 /**
@@ -56,6 +58,9 @@ export default function ReplayView({
   press,
   release,
   onDone,
+  keyColors,
+  accent,
+  mode,
 }: ReplayViewProps) {
   const { words, events } = replay;
 
@@ -178,7 +183,14 @@ export default function ReplayView({
       </div>
 
       {showKeyboard && (
-        <Keyboard3D pressed={finished ? NO_KEYS : pressed} hints={NO_KEYS} isDark={isDark} />
+        <KeyboardView
+          mode={mode}
+          pressed={finished ? NO_KEYS : pressed}
+          hints={NO_KEYS}
+          isDark={isDark}
+          keyColors={keyColors}
+          accent={accent}
+        />
       )}
     </div>
   );

@@ -38,7 +38,7 @@ const ModeSelector = React.memo(function ModeSelector({
                   relative px-4 py-1.5 rounded-xl text-sm font-bold transition-all duration-300
                   ${
                     mode === m
-                      ? "text-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                      ? "text-accent bg-accent-soft"
                       : isDark
                         ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
                         : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
@@ -47,7 +47,7 @@ const ModeSelector = React.memo(function ModeSelector({
               >
                 {modeLabel(m)}
                 {mode === m && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-500" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent" />
                 )}
               </button>
             ))}
@@ -72,7 +72,7 @@ const ModeSelector = React.memo(function ModeSelector({
                 className={`
                   group/btn relative px-2 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300
                   ${options[opt.id as keyof TestOptions] 
-                    ? 'text-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]' 
+                    ? 'text-accent bg-accent-soft'
                     : isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}
                 `}
               >
@@ -81,7 +81,7 @@ const ModeSelector = React.memo(function ModeSelector({
                   {opt.full}
                 </span>
                 {options[opt.id as keyof TestOptions] && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-amber-500" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent" />
                 )}
               </button>
             ))}

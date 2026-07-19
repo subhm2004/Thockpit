@@ -13,19 +13,37 @@ const PLOT_H = HEIGHT - MARGIN.top - MARGIN.bottom;
 const MAX_POINTS = 20;
 
 const PALETTES = {
-  dark: { wpm: '#d97706', grid: '#27272a', ink: '#71717a', surface: '#0f0f0f' },
-  light: { wpm: '#b45309', grid: '#e4e4e7', ink: '#71717a', surface: '#fafafa' },
+  dark: { grid: '#27272a', ink: '#71717a', surface: '#0f0f0f' },
+  light: { grid: '#e4e4e7', ink: '#71717a', surface: '#fafafa' },
 } as const;
+
+/** Pull a hex toward black — keeps a light theme accent legible on a white plot. */
+function darken(hex: string, factor: number): string {
+  const n = hex.replace('#', '');
+  const to = (i: number) =>
+    Math.round(parseInt(n.slice(i, i + 2), 16) * factor)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${to(0)}${to(2)}${to(4)}`;
+}
 
 interface HistoryChartProps {
   /** Newest first, as stored. */
   history: TestResult[];
   isDark: boolean;
   onClear: () => void;
+  /** The trend line follows the theme accent (defaults to Classic amber). */
+  accent?: string;
 }
 
-export default function HistoryChart({ history, isDark, onClear }: HistoryChartProps) {
-  const palette = PALETTES[isDark ? 'dark' : 'light'];
+export default function HistoryChart({ history, isDark, onClear, accent = '#f59e0b' }: HistoryChartProps) {
+  const palette = useMemo(
+    () => ({
+      ...PALETTES[isDark ? 'dark' : 'light'],
+      wpm: isDark ? accent : darken(accent, 0.72),
+    }),
+    [isDark, accent]
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
 

@@ -11,8 +11,9 @@
 
 **Thockpit** is a typing test you can *hear*. A 3D mechanical keyboard sits under the
 words and reacts as you type — the right keycap sinks, the next one glows, and every
-stroke plays a recording of a real switch. When the clock runs out you get a graph of
-what actually happened, and every run is kept locally so you can watch yourself improve.
+stroke plays a recording of a real switch. Dress it in one of six keycap-set themes,
+flatten it to a 2D board if you prefer, and when the clock runs out you get a graph of
+what actually happened. Every run is kept locally so you can watch yourself improve.
 
 ```bash
 npm install
@@ -37,6 +38,7 @@ No accounts, no backend, no telemetry. Everything lives in your browser.
 - [Features](#features)
 - [How it works](#how-it-works)
 - [Sound packs](#sound-packs)
+- [Themes](#themes)
 - [Project structure](#project-structure)
 - [Design decisions](#design-decisions)
 - [Accessibility](#accessibility)
@@ -59,12 +61,26 @@ The layout is the real thing, down to the key widths — `delete` is 1.5u, `caps
 1.75u, both shifts 2.25u, the arrows are a proper inverted-T, and `F` and `J` have
 home-row bumps. Every row adds up to 14.5u, which is what keeps the deck rectangular.
 
-- The key you must press **next** pulses amber.
+- The key you must press **next** pulses in the theme's accent.
 - A capital letter also lights the **opposite** shift key — the one you're supposed
   to use.
 - On a phone, where the keyboard reports no key codes at all, the key is worked out
   from the character that lands in the input — so the board still plays along.
-- The whole board can be hidden from the toolbar if you'd rather just type.
+- The whole board can be hidden if you'd rather just type.
+
+Prefer something flatter? Flip to the **2D board** in Keyboard Settings: the same keys
+and the same behaviour — pressed lights up, the next one glows, the results heatmap —
+drawn as crisp coloured tiles instead of WebGL. Both boards read from one layout table,
+so they can never disagree.
+
+### 🎨 Six themes, head to toe
+
+Classic amber, Mint, Royal, Dolch, Sand, Scarlet — named after keycap sets, the way the
+switches are. Pick one and the whole app moves with it: the keycaps and their deck, the
+pressed-key glow, the next-key hint, the WPM number, the buttons, the speed line on the
+graph, the logo mark, even the glow of the lamp. In light mode the page itself takes on
+a faint wash of the colour; dark mode stays true black, because a tint there just muddies
+it. Your choice is kept between visits.
 
 ### 🎯 …and it shows you what you keep missing
 
@@ -88,10 +104,13 @@ Every press is detuned a few percent at random, so two strokes of the same key a
 never identical. Samples decode up-front and play through a compressor, so fast typing
 doesn't clip or lag.
 
+And where the device can do it — a phone, mostly — **haptics** add a faint tap on every
+keystroke. Everywhere that can't, the toggle is simply a no-op; nothing pretends.
+
 ### 🏆 A best worth celebrating
 
 Beat your own record and the board says so: a wave rolls out from the middle of the
-keyboard, every cap lifting and flashing amber as it passes, over a rising arpeggio
+keyboard, every cap lifting and flashing the accent as it passes, over a rising arpeggio
 that could never be mistaken for a keystroke.
 
 Then hit **Share** and the run renders to an image — your wpm, the shape of the run,
@@ -111,7 +130,15 @@ would not fit in `localStorage`.
 The lamp hanging in the corner is a pull-chain. Grab it, **pull it down**, and let go —
 the cord stretches, springs back, and the light comes on (light theme). Pull again and
 it goes off. Pull less than the threshold and nothing happens, exactly like the real
-thing. It's also a plain button, so a tap or the keyboard works fine.
+thing. Lit, the bulb glows in whatever theme you're wearing. It's also a plain button,
+so a tap or the keyboard works fine.
+
+### ⚙️ One place for the settings
+
+The **Keyboard Settings** panel gathers everything in one dialog: theme, 2D or 3D board,
+sound pack, whether the board shows, haptics, and sound. It opens from the toolbar and
+closes on `Escape` or the button. Nothing you set there is ever lost — it all rides in
+`localStorage`.
 
 ### 📈 Stats that mean something
 
@@ -156,15 +183,26 @@ number of mistakes made during that second. That array is the result graph. When
 clock ends (or you finish the words), it builds a `TestResult`, saves it, and hands it
 back. An untouched test is never saved.
 
-### The board — `components/Keyboard3D.tsx`
+### The boards — `components/Keyboard3D.tsx`, `components/Keyboard2D.tsx`
 
-The layout table in `utils/keyboard.ts` is turned into world-space positions once, then
-rendered with React Three Fiber. Key legends are drawn to a canvas and used as textures,
-so no font file has to load and nothing goes fuzzy when the board is scaled.
+The layout table in `utils/keyboard.ts` is turned into positions once, then drawn two
+ways. `Keyboard3D` places it in world space and renders with React Three Fiber; key
+legends are drawn to a canvas and used as textures, so no font file has to load and
+nothing goes fuzzy when the board is scaled. `Keyboard2D` lays the same keys out as flat
+DOM tiles. A tiny `KeyboardView` picks between them, so every caller — the live test, the
+results heatmap, the replay — renders whichever board you chose.
 
 Pressed keys are damped toward their sunk position each frame rather than snapped, and
 the emissive glow is lerped, so at 150 wpm the board still looks like it's being played
 rather than strobing.
+
+### The theme — `utils/themes.ts`
+
+Each theme is an accent plus a keycap palette for light and dark. The keyboards take the
+palette directly; the rest of the UI reads the accent through a single `--accent` CSS
+variable. That variable is written to `<html>` *imperatively, after mount* — never in
+the server-rendered markup — so a stored theme can't clash with what the server drew and
+leave the wrong colour stuck on load.
 
 ### The sound — `hooks/useKeySound.ts`
 
@@ -176,7 +214,8 @@ is the user gesture browsers require.
 ### The charts — `components/ResultChart.tsx`, `components/HistoryChart.tsx`
 
 Hand-written SVG, no chart library. Scales, ticks, hover crosshair, tooltip, and a
-screen-reader table, in about 200 lines each.
+screen-reader table, in about 200 lines each. The speed line follows the theme accent,
+darkened a touch in light mode so it stays legible on a near-white plot.
 
 ---
 
@@ -190,9 +229,26 @@ screen-reader table, in about 200 lines each.
 | **Box Navy**, **Blue Alps**, **Turquoise** | loud and clicky |
 | **Buckling Spring** | the IBM Model M |
 
-Pick one from the toolbar; the choice is remembered. All 144 samples come from
+Pick one in Keyboard Settings; the choice is remembered. All 144 samples come from
 [**tplai/kbsim**](https://github.com/tplai/kbsim) (MIT) — see
 [`public/sounds/CREDITS.md`](public/sounds/CREDITS.md). They add up to about 600 KB.
+
+---
+
+## Themes
+
+| Theme | Accent |
+|---|---|
+| **Classic** *(default)* | amber |
+| **Mint** | emerald |
+| **Royal** | indigo |
+| **Dolch** | teal |
+| **Sand** | warm tan |
+| **Scarlet** | red |
+
+Choose one in Keyboard Settings. Each carries its own keycap colours for light and dark,
+and the accent flows to the whole interface. Everything's in `utils/themes.ts` — add a
+theme by dropping another entry in the list.
 
 ---
 
@@ -207,6 +263,9 @@ components/
   TypingTest.tsx       composition root — wires everything together
   WordDisplay.tsx      the words and their per-character colours
   Keyboard3D.tsx       the three.js board
+  Keyboard2D.tsx       the flat DOM board
+  KeyboardView.tsx     picks 2D or 3D for every caller
+  KeyboardSettings.tsx the settings dialog
   ThemeToggle.tsx      the pull-chain lamp
   ResultChart.tsx      speed-over-time graph
   HistoryChart.tsx     wpm across recent tests
@@ -219,6 +278,7 @@ hooks/
   useKeySound.ts       Web Audio sample player
 utils/
   keyboard.ts          MacBook layout table, char → key mapping
+  themes.ts            the six keycap-set colour themes
   words.ts             word list and generation
   typing.ts            wpm, accuracy, consistency
   stats.ts             all-time aggregates
@@ -242,14 +302,26 @@ that still projects all eight corners inside the view. It's correct at any aspec
 (drei's `<Bounds>` fits a bounding *sphere*, which for a board this wide and flat
 overshoots the other way and leaves it tiny.)
 
+**The theme rides on a CSS variable set after mount.** Reading the stored theme in
+render would make the server draw amber and the client draw your real colour — a
+hydration mismatch, and browsers "won't patch it up," so the wrong accent sticks. Instead
+`--accent` is written to `<html>` in an effect, once the client is mounted, and nothing
+theme-derived ever appears in the server markup. `<body>` also carries
+`suppressHydrationWarning`, because extensions like to inject attributes there before
+React loads.
+
+**Dark stays black; only light gets a tint.** The page background is a faint wash of the
+accent — but only in light mode, where it reads as a tasteful hint. Over near-black it
+just turns muddy, so dark mode keeps its true `#0f0f0f`.
+
 **The result graph has one y-axis.** Monkeytype-style charts often put errors on a
 second scale; two y-scales in one chart is the single most misleading thing you can do
 to a reader. Errors ride on the raw line instead — same scale, no second axis.
 
-**Chart colours were validated, not eyeballed.** Amber-500 (the UI accent) fails the
-lightness band on a dark surface, so the lines use `#d97706` on dark and `#b45309` on
-light — both clear 3:1 contrast against their surface. Both lines are also labelled
-directly, so identity never rests on colour alone.
+**Chart colours follow the theme, but never blindly.** The speed line uses the theme
+accent so the graph matches the rest of the app, but on a light plot that accent is
+darkened until it clears contrast against the near-white surface. Both lines are also
+labelled directly, so identity never rests on colour alone.
 
 **Pointer capture eats clicks.** The pull-chain first used `setPointerCapture`, which
 retargets the follow-up `click` to the capturing element — so a plain tap on the lamp
@@ -257,18 +329,18 @@ never reached the button and the theme wouldn't toggle. It tracks the drag on `w
 instead.
 
 **A page-wide click handler will steal your focus.** Clicking anywhere refocuses the
-hidden typing input — which snatched focus off the switch dropdown and shut it the
-instant it opened. Interactive controls stop the click from propagating; the stats panel
-blurs the input while it's up, or keystrokes would quietly run a test behind it.
+hidden typing input — which snatched focus off the controls and shut a dropdown the
+instant it opened. Interactive controls stop the click from propagating; the panels blur
+the input while they're up, or keystrokes would quietly run a test behind them.
 
 ---
 
 ## Accessibility
 
 - Every chart ships a `sr-only` table of the same numbers.
-- Series are direct-labelled, so a colourblind reader never has to tell amber from grey.
+- Series are direct-labelled, so a colourblind reader never has to tell the accent from grey.
 - The lamp is a real `<button>`: tab to it, hit enter.
-- The stats panel is a labelled dialog and closes on `Escape`.
+- The stats and settings panels are labelled dialogs and close on `Escape`.
 - The banner above honours `prefers-reduced-motion`. **The app itself doesn't yet** —
   the board's tilt and the next-key pulse keep animating. Worth fixing.
 

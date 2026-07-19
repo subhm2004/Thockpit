@@ -6,6 +6,7 @@ import { ContactShadows, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { KeyTallies } from '@/types';
 import { KeyDef, MAC_ROWS } from '@/utils/keyboard';
+import { KeyColors } from '@/utils/themes';
 
 /** World units: 1u = one letter key. Every row of the layout is 14.5u wide. */
 const U = 1;
@@ -16,17 +17,10 @@ const FN_DEPTH = 0.58;
 const PRESS_DROP = 0.16;
 const DECK_MARGIN = 0.42;
 
-const ACCENT = new THREE.Color('#f59e0b');
+/** Used only until the parent passes a theme (Classic amber). */
+const DEFAULT_ACCENT = '#f59e0b';
 
-interface Theme {
-  deck: string;
-  cap: string;
-  /** Emissive alone is invisible on a white keycap, so the hint tints it too. */
-  hint: string;
-  label: string;
-}
-
-const THEMES: Record<'dark' | 'light', Theme> = {
+const FALLBACK_KEYS: Record<'dark' | 'light', KeyColors> = {
   dark: { deck: '#1f1f24', cap: '#33333b', hint: '#5a4622', label: '#d4d4d8' },
   light: { deck: '#c8c8cf', cap: '#f6f6f8', hint: '#fcd34d', label: '#3f3f46' },
 };
@@ -162,7 +156,9 @@ interface KeycapProps {
   /** When the celebration wave started. A ref: reading the clock during render
    *  is impure, and a prop change would re-render every keycap. */
   rippleRef: React.RefObject<number | null>;
-  theme: Theme;
+  theme: KeyColors;
+  /** The theme's accent — pressed keys and the wave glow this colour. */
+  accent: THREE.Color;
 }
 
 /** How fast the personal-best wave rolls outward, in ms per key unit. */
@@ -190,6 +186,7 @@ const Keycap = React.memo(function Keycap({
   score,
   rippleRef,
   theme,
+  accent,
 }: KeycapProps) {
   const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
@@ -227,8 +224,8 @@ const Keycap = React.memo(function Keycap({
     const glow = Math.max(isPressed ? 1.3 : isHint ? pulse : 0, ripple * 1.6);
     m.emissiveIntensity = THREE.MathUtils.damp(m.emissiveIntensity, glow, 14, delta);
 
-    const resting = heat ?? (isPressed ? ACCENT : isHint ? hintColor : base);
-    const target = ripple > 0.15 ? ACCENT : resting;
+    const resting = heat ?? (isPressed ? accent : isHint ? hintColor : base);
+    const target = ripple > 0.15 ? accent : resting;
     m.color.lerp(target, 1 - Math.exp(-16 * delta));
   });
 
@@ -244,7 +241,7 @@ const Keycap = React.memo(function Keycap({
         <meshStandardMaterial
           ref={material}
           color={theme.cap}
-          emissive={ACCENT}
+          emissive={accent}
           emissiveIntensity={0}
           roughness={0.55}
           metalness={0.15}
@@ -268,11 +265,12 @@ interface BoardProps {
   hints: ReadonlySet<string>;
   scores: Map<string, number> | null;
   rippleRef: React.RefObject<number | null>;
-  theme: Theme;
+  theme: KeyColors;
+  accent: THREE.Color;
   boardRef: React.RefObject<THREE.Group | null>;
 }
 
-function Board({ pressed, hints, scores, rippleRef, theme, boardRef }: BoardProps) {
+function Board({ pressed, hints, scores, rippleRef, theme, accent, boardRef }: BoardProps) {
   // Follow the cursor a little, so the board reads as a solid object.
   useFrame((state, delta) => {
     const g = boardRef.current;
@@ -303,6 +301,7 @@ function Board({ pressed, hints, scores, rippleRef, theme, boardRef }: BoardProp
           score={scores?.get(placed.def.code) ?? null}
           rippleRef={rippleRef}
           theme={theme}
+          accent={accent}
         />
       ))}
     </group>
@@ -398,6 +397,10 @@ interface Keyboard3DProps {
   /** Change this (to a result id, say) to roll a celebration wave across the board. */
   rippleToken?: string | null;
   isDark?: boolean;
+  /** Keycap palette for the active theme; falls back to Classic. */
+  keyColors?: KeyColors;
+  /** Theme accent for pressed keys and the wave. */
+  accent?: string;
 }
 
 export default function Keyboard3D({
@@ -406,8 +409,14 @@ export default function Keyboard3D({
   keys,
   rippleToken = null,
   isDark = true,
+  keyColors,
+  accent,
 }: Keyboard3DProps) {
-  const theme = THEMES[isDark ? 'dark' : 'light'];
+  const theme = keyColors ?? FALLBACK_KEYS[isDark ? 'dark' : 'light'];
+  const accentColor = useMemo(
+    () => new THREE.Color(accent ?? DEFAULT_ACCENT),
+    [accent]
+  );
   const boardRef = useRef<THREE.Group>(null);
   const rippleRef = useRef<number | null>(null);
 
@@ -451,6 +460,7 @@ export default function Keyboard3D({
           scores={scores}
           rippleRef={rippleRef}
           theme={theme}
+          accent={accentColor}
           boardRef={boardRef}
         />
         {/* After <Board>, so its ref is set when the rig measures it. */}

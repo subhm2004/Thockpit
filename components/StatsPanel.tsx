@@ -20,7 +20,7 @@ function Tile({ label, value, isDark, accent = false }: TileProps) {
       </div>
       <div
         className={`text-3xl sm:text-4xl font-bold ${
-          accent ? 'text-amber-500' : isDark ? 'text-zinc-100' : 'text-zinc-900'
+          accent ? 'text-accent' : isDark ? 'text-zinc-100' : 'text-zinc-900'
         }`}
       >
         {value}
@@ -34,9 +34,10 @@ interface StatsPanelProps {
   isDark: boolean;
   onClose: () => void;
   onClear: () => void;
+  accent?: string;
 }
 
-export default function StatsPanel({ history, isDark, onClose, onClear }: StatsPanelProps) {
+export default function StatsPanel({ history, isDark, onClose, onClear, accent = '#f59e0b' }: StatsPanelProps) {
   const summary = useMemo(() => summarise(history), [history]);
   const recent = useMemo(() => history.slice(0, 10), [history]);
 
@@ -111,7 +112,7 @@ export default function StatsPanel({ history, isDark, onClose, onClear }: StatsP
               </div>
             </section>
 
-            <HistoryChart history={history} isDark={isDark} onClear={onClear} />
+            <HistoryChart history={history} isDark={isDark} onClear={onClear} accent={accent} />
 
             <section>
               <h3 className={`text-xs uppercase tracking-widest font-bold mb-3 ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
@@ -140,7 +141,7 @@ export default function StatsPanel({ history, isDark, onClose, onClear }: StatsP
                           })}
                         </td>
                         <td className="text-right py-2">{modeLabel(run.mode)}</td>
-                        <td className="text-right py-2 font-bold text-amber-500">{run.wpm}</td>
+                        <td className="text-right py-2 font-bold text-accent">{run.wpm}</td>
                         <td className="text-right py-2">{run.accuracy}%</td>
                         <td className="text-right py-2">{run.consistency}%</td>
                       </tr>

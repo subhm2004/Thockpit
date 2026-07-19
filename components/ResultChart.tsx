@@ -15,9 +15,19 @@ const PLOT_H = HEIGHT - MARGIN.top - MARGIN.bottom;
  * 3:1 contrast on each surface — amber-500 does not, on either.
  */
 const PALETTES = {
-  dark: { wpm: '#d97706', raw: '#a1a1aa', error: '#d03b3b', grid: '#27272a', ink: '#71717a' },
-  light: { wpm: '#b45309', raw: '#52525b', error: '#d03b3b', grid: '#e4e4e7', ink: '#71717a' },
+  dark: { raw: '#a1a1aa', error: '#d03b3b', grid: '#27272a', ink: '#71717a' },
+  light: { raw: '#52525b', error: '#d03b3b', grid: '#e4e4e7', ink: '#71717a' },
 } as const;
+
+/** Pull a hex toward black — keeps a light theme accent legible on a white plot. */
+function darken(hex: string, factor: number): string {
+  const n = hex.replace('#', '');
+  const to = (i: number) =>
+    Math.round(parseInt(n.slice(i, i + 2), 16) * factor)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${to(0)}${to(2)}${to(4)}`;
+}
 
 /** A round tick step that covers the peak in at most five gridlines. */
 function niceScale(peak: number): { yMax: number; step: number } {
@@ -29,10 +39,19 @@ function niceScale(peak: number): { yMax: number; step: number } {
 interface ResultChartProps {
   result: TestResult;
   isDark: boolean;
+  /** The speed line follows the theme accent (defaults to Classic amber). */
+  accent?: string;
 }
 
-export default function ResultChart({ result, isDark }: ResultChartProps) {
-  const palette = PALETTES[isDark ? 'dark' : 'light'];
+export default function ResultChart({ result, isDark, accent = '#f59e0b' }: ResultChartProps) {
+  const palette = useMemo(
+    () => ({
+      ...PALETTES[isDark ? 'dark' : 'light'],
+      // Bright accent reads on the dark plot; darken it for the light one.
+      wpm: isDark ? accent : darken(accent, 0.72),
+    }),
+    [isDark, accent]
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
 

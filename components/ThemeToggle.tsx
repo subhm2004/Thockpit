@@ -7,6 +7,8 @@ interface ThemeToggleProps {
   isDark: boolean;
   onToggle: () => void;
   soundEnabled?: boolean;
+  /** The lit bulb, its glow and the cord take the theme accent. */
+  accent?: string;
 }
 
 /** Resting length of the cord, in px. */
@@ -19,9 +21,26 @@ const MAX_SWING = 26;
 /** Anything shorter than this counts as a tap, not a pull. */
 const DRAG_SLOP = 4;
 
-export default function ThemeToggle({ isDark, onToggle, soundEnabled = true }: ThemeToggleProps) {
+export default function ThemeToggle({
+  isDark,
+  onToggle,
+  soundEnabled = true,
+  accent = '#f59e0b',
+}: ThemeToggleProps) {
   const [armed, setArmed] = useState(false);
   const clack = useLampSound(soundEnabled);
+
+  // A translucent wash of the accent, for the bulb's glow and the pull ring.
+  const soft = (pct: number) => `color-mix(in srgb, ${accent} ${pct}%, transparent)`;
+  const lit = !isDark;
+  const bulbStyle: React.CSSProperties | undefined = lit
+    ? {
+        backgroundColor: accent,
+        boxShadow: `0 0 40px 12px ${soft(45)}${armed ? `, 0 0 0 3px ${soft(70)}` : ''}`,
+      }
+    : armed
+      ? { boxShadow: `0 0 0 3px ${soft(70)}` }
+      : undefined;
 
   const mountRef = useRef<HTMLDivElement>(null);
   const armRef = useRef<HTMLDivElement>(null);
@@ -199,21 +218,18 @@ export default function ThemeToggle({ isDark, onToggle, soundEnabled = true }: T
       onClick={handleClick}
       aria-label={isDark ? 'Turn the light on' : 'Turn the light off'}
       aria-pressed={!isDark}
+      style={bulbStyle}
       className={`
         relative w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center
         transition-all duration-300 cursor-grab active:cursor-grabbing touch-none
-        ${
-          isDark
-            ? 'bg-zinc-700 shadow-inner shadow-black/40 hover:bg-zinc-600'
-            : 'bg-amber-300 shadow-[0_0_40px_12px_rgba(251,191,36,0.55)] hover:bg-amber-200'
-        }
-        ${armed ? 'scale-110 ring-2 ring-amber-400/70' : ''}
+        ${isDark ? 'bg-zinc-700 shadow-inner shadow-black/40 hover:bg-zinc-600' : 'hover:brightness-110'}
+        ${armed ? 'scale-110' : ''}
       `}
     >
       {/* Filament */}
       <svg
         className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors duration-300 ${
-          isDark ? 'text-zinc-500' : 'text-amber-700'
+          isDark ? 'text-zinc-500' : 'text-black/55'
         }`}
         fill="none"
         stroke="currentColor"
@@ -246,12 +262,13 @@ export default function ThemeToggle({ isDark, onToggle, soundEnabled = true }: T
         >
           <div
             ref={cordRef}
-            className={`w-0.5 transition-colors duration-300 ${
-              isDark ? 'bg-zinc-600' : 'bg-amber-600/80'
-            }`}
-            style={{ height: `${CORD}px` }}
+            className={`w-0.5 transition-colors duration-300 ${isDark ? 'bg-zinc-600' : ''}`}
+            style={{ height: `${CORD}px`, backgroundColor: lit ? soft(80) : undefined }}
           />
-          <div className={`w-2.5 h-2.5 rounded-full -mt-0.5 ${isDark ? 'bg-zinc-600' : 'bg-amber-700'}`} />
+          <div
+            className={`w-2.5 h-2.5 rounded-full -mt-0.5 ${isDark ? 'bg-zinc-600' : ''}`}
+            style={{ backgroundColor: lit ? accent : undefined }}
+          />
           {bulb}
         </div>
       </div>

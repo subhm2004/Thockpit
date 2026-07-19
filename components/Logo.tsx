@@ -4,10 +4,12 @@ import React from 'react';
 
 interface LogoProps {
   isDark?: boolean;
+  /** The keycap and sound waves take the theme accent (defaults to Classic amber). */
+  accent?: string;
 }
 
 /** A keycap, mid-thock. The same mark is the favicon in app/icon.svg. */
-export default function Logo({ isDark = true }: LogoProps) {
+export default function Logo({ isDark = true, accent = '#f59e0b' }: LogoProps) {
   const skirt = isDark ? '#52525b' : '#a1a1aa';
 
   return (
@@ -21,11 +23,11 @@ export default function Logo({ isDark = true }: LogoProps) {
         className="shrink-0"
       >
         <rect x="5" y="10" width="15" height="14" rx="3.5" fill={skirt} />
-        <rect x="5" y="6.5" width="15" height="13" rx="3.5" fill="#f59e0b" />
-        <path d="M23.5 12.5a5 5 0 0 1 0 7" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" />
+        <rect x="5" y="6.5" width="15" height="13" rx="3.5" fill={accent} />
+        <path d="M23.5 12.5a5 5 0 0 1 0 7" stroke={accent} strokeWidth="2.2" strokeLinecap="round" />
         <path
           d="M26.8 9.5a9.5 9.5 0 0 1 0 13"
-          stroke="#f59e0b"
+          stroke={accent}
           strokeWidth="2.2"
           strokeLinecap="round"
           opacity="0.45"

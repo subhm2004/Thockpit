@@ -42,7 +42,7 @@ const Stats = React.memo(function Stats({ stats, mode, elapsed, bestWpm, isDark 
         </div>
       </div>
       {bestWpm !== null && (
-        <div className="text-amber-500 text-sm mt-2">Best: {bestWpm} WPM</div>
+        <div className="text-accent text-sm mt-2">Best: {bestWpm} WPM</div>
       )}
     </div>
   );

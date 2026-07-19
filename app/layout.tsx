@@ -20,7 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${jetbrainsMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#0f0f0f] font-mono">{children}</body>
+      {/* Browser extensions (ad blockers, Bitdefender, Grammarly…) inject
+          attributes into <body> before React hydrates; this stops those from
+          being reported as hydration mismatches. */}
+      <body className="min-h-full flex flex-col bg-[#0f0f0f] font-mono" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
